@@ -41,7 +41,7 @@ jobs:
         run: node scripts/write-production-endpoint.js
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Typecheck
         run: npm run typecheck
