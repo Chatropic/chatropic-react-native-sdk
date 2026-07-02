@@ -2,6 +2,10 @@
   "name": "@chatropic/react-native",
   "version": "0.1.0",
   "description": "React Native SDK for embedding Chatropic chat widgets in mobile apps",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Chatropic/chatropic-react-native-sdk.git"
+  },
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
