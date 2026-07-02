@@ -1,0 +1,11 @@
+export declare const INPUT_SAMPLE_RATE = 16000;
+export declare const OUTPUT_SAMPLE_RATE = 24000;
+export declare function floatTo16BitPCM(input: ArrayLike<number>): Int16Array;
+export declare function downsampleBuffer(buffer: Float32Array, fromRate: number, toRate: number): Float32Array;
+export declare function downsampleInt16(buffer: Int16Array, fromRate: number, toRate: number): Int16Array;
+export declare function int16ToFloat32(input: Int16Array): Float32Array;
+export declare function base64ToBytes(b64: string): Uint8Array;
+export declare function bytesToBase64(bytes: Uint8Array): string;
+export declare function parseSampleRate(mimeType: string, fallback: number): number;
+export declare function concatPcm(chunks: Uint8Array[]): Uint8Array;
+export declare function pcm16ToWav(pcm: Uint8Array, sampleRate: number, channels?: number): Uint8Array;
