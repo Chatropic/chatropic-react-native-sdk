@@ -12,9 +12,6 @@ jobs:
   publish:
     name: Publish @chatropic/react-native
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: sdk/react-native
 
     steps:
       - name: Checkout
@@ -26,7 +23,7 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
           cache: npm
-          cache-dependency-path: sdk/react-native/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Set package version from release tag
         run: |
