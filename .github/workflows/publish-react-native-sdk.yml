@@ -35,6 +35,19 @@ jobs:
           fi
           npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
 
+      - name: Resolve npm publish tag
+        id: publish-tag
+        run: |
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          if [[ "$PACKAGE_VERSION" == *-* ]]; then
+            PRERELEASE="${PACKAGE_VERSION#*-}"
+            CHANNEL="${PRERELEASE%%.*}"
+            CHANNEL="${CHANNEL%%-*}"
+            echo "tag=$CHANNEL" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Configure SDK production endpoint
         env:
           CHATROPIC_SDK_PRODUCTION_AGENT_URL: ${{ secrets.CHATROPIC_SDK_PRODUCTION_AGENT_URL }}
@@ -56,6 +69,6 @@ jobs:
         run: npm run release:scan
 
       - name: Publish to npm
-        run: npm publish --access public --provenance
+        run: npm publish --access public --provenance --tag "${{ steps.publish-tag.outputs.tag }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
