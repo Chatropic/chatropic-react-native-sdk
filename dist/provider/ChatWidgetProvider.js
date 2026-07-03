@@ -6,6 +6,7 @@ import { playSentSound, playReceivedSound, } from "../audio/message-sounds";
 import { applyThemeToWidgetConfig, resolveWidgetColorScheme, } from "../theme/resolve-colors";
 import { createChatSessionId, createTurnId, mergeWidgetConfig, } from "../utils/session";
 import { getDefaultAgentUrl } from "../config/environment";
+import { getInternalChatStorage } from "../storage/internal-chat-storage";
 function turnsToAgentHistory(turns) {
     const rows = [];
     for (const turn of turns) {
@@ -39,6 +40,9 @@ function welcomeTurn(welcome) {
     };
 }
 const RESOLVED_SESSION_MESSAGE = "This conversation was closed. Send a new message to continue.";
+function hasUserTurn(turns) {
+    return turns.some((turn) => turn.role === "user");
+}
 export function ChatWidgetProvider({ children, tenantId, publishableKey, profile = "chat", sessionId: fixedSessionId, endUserId, userName, userEmail, theme, onNavigate, onUserMessage, onAgentDone, onSessionRotate, sessionHandoffNotice = null, }) {
     const runtimeApiKey = publishableKey;
     const agentUrl = getDefaultAgentUrl();
@@ -55,7 +59,9 @@ export function ChatWidgetProvider({ children, tenantId, publishableKey, profile
     const [voiceTranscript, setVoiceTranscript] = useState([]);
     const [voiceError, setVoiceError] = useState(null);
     const [conversationResolved, setConversationResolved] = useState(false);
+    const [storageHydrated, setStorageHydrated] = useState(false);
     const sessionIdRef = useRef(fixedSessionId ?? createChatSessionId("rn"));
+    const storageRef = useRef(getInternalChatStorage());
     const abortRef = useRef(null);
     const pendingSendTimerRef = useRef(null);
     const voiceClientRef = useRef(null);
@@ -65,6 +71,19 @@ export function ChatWidgetProvider({ children, tenantId, publishableKey, profile
     const welcomeMessageRef = useRef("");
     const inputLockedRef = useRef(false);
     const conversationResolvedRef = useRef(false);
+    const lastLoadedScopeRef = useRef(null);
+    const storageScope = useMemo(() => ({
+        tenantId: tenantId?.trim() || runtimeApiKey?.trim() || "anonymous",
+        productId,
+        profile,
+        endUserId,
+    }), [tenantId, runtimeApiKey, productId, profile, endUserId]);
+    const storageScopeKey = useMemo(() => [
+        storageScope.tenantId,
+        storageScope.productId,
+        storageScope.profile ?? "chat",
+        storageScope.endUserId?.trim() || "anon",
+    ].join("\u001f"), [storageScope]);
     const rotateSession = useCallback(() => {
         const nextSessionId = createChatSessionId("rn");
         sessionIdRef.current = nextSessionId;
@@ -134,13 +153,73 @@ export function ChatWidgetProvider({ children, tenantId, publishableKey, profile
         }
     }, [fixedSessionId]);
     useEffect(() => {
-        if (loading || initializedRef.current)
+        let cancelled = false;
+        setStorageHydrated(false);
+        setConversationResolved(false);
+        storageRef.current
+            .load(storageScope)
+            .then((cached) => {
+            if (cancelled)
+                return;
+            const canRestoreSession = !fixedSessionId || cached?.sessionId === fixedSessionId;
+            if (cached && canRestoreSession) {
+                sessionIdRef.current = cached.sessionId;
+                onSessionRotate?.(cached.sessionId);
+                setTurns(cached.turns);
+                initializedRef.current = cached.turns.length > 0;
+            }
+            else {
+                const scopeChanged = lastLoadedScopeRef.current !== null &&
+                    lastLoadedScopeRef.current !== storageScopeKey;
+                if (fixedSessionId) {
+                    sessionIdRef.current = fixedSessionId;
+                }
+                else if (scopeChanged) {
+                    const nextSessionId = createChatSessionId("rn");
+                    sessionIdRef.current = nextSessionId;
+                    onSessionRotate?.(nextSessionId);
+                }
+                setTurns([]);
+                initializedRef.current = false;
+            }
+            lastLoadedScopeRef.current = storageScopeKey;
+        })
+            .catch(() => {
+            if (cancelled)
+                return;
+            initializedRef.current = false;
+        })
+            .finally(() => {
+            if (!cancelled)
+                setStorageHydrated(true);
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, [fixedSessionId, onSessionRotate, storageScope, storageScopeKey]);
+    useEffect(() => {
+        if (loading || !storageHydrated || initializedRef.current)
             return;
         if (config.welcomeMessage) {
             setTurns([welcomeTurn(config.welcomeMessage)]);
             initializedRef.current = true;
         }
-    }, [loading, config.welcomeMessage]);
+    }, [loading, storageHydrated, config.welcomeMessage]);
+    useEffect(() => {
+        if (!storageHydrated)
+            return;
+        if (conversationResolved) {
+            void storageRef.current.clear(storageScope);
+            return;
+        }
+        if (!hasUserTurn(turns))
+            return;
+        void storageRef.current.save(storageScope, {
+            sessionId: sessionIdRef.current,
+            turns,
+            updatedAt: Date.now(),
+        });
+    }, [storageHydrated, conversationResolved, storageScope, turns]);
     const appendSingleTurn = useCallback((turn) => {
         setTurns((prev) => [...prev, turn]);
     }, []);

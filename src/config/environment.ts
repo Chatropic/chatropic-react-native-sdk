@@ -1,4 +1,7 @@
-import { CHATROPIC_GENERATED_PRODUCTION_AGENT_URL } from "./generated";
+import {
+  CHATROPIC_GENERATED_DEVELOPMENT_AGENT_URL,
+  CHATROPIC_GENERATED_PRODUCTION_AGENT_URL,
+} from "./generated";
 
 export type ChatropicEnvironmentName = "auto" | "development" | "production";
 
@@ -9,11 +12,9 @@ export interface ChatropicEnvironmentConfig {
 
 export interface ChatropicEnvironmentOptions {
   environment?: ChatropicEnvironmentName;
-  developmentAgentUrl?: string;
-  productionAgentUrl?: string;
 }
 
-export const CHATROPIC_DEVELOPMENT_AGENT_URL = CHATROPIC_GENERATED_PRODUCTION_AGENT_URL;
+export const CHATROPIC_DEVELOPMENT_AGENT_URL = CHATROPIC_GENERATED_DEVELOPMENT_AGENT_URL;
 export const CHATROPIC_PRODUCTION_AGENT_URL = CHATROPIC_GENERATED_PRODUCTION_AGENT_URL;
 
 declare const __DEV__: boolean | undefined;
@@ -45,8 +46,8 @@ export function resolveChatropicEnvironment(
     name,
     agentUrl: cleanUrl(
       name === "development"
-        ? (options.developmentAgentUrl ?? CHATROPIC_DEVELOPMENT_AGENT_URL)
-        : (options.productionAgentUrl ?? CHATROPIC_PRODUCTION_AGENT_URL),
+        ? CHATROPIC_DEVELOPMENT_AGENT_URL
+        : CHATROPIC_PRODUCTION_AGENT_URL,
     ),
   };
 }

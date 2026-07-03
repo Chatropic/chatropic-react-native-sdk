@@ -14,6 +14,7 @@ declare module "react-native" {
   export const Image: React.ComponentType<any>;
   export const Linking: any;
   export const Modal: React.ComponentType<any>;
+  export const NativeModules: Record<string, any>;
   export const Platform: any;
   export const Pressable: React.ComponentType<any>;
   export class ScrollView extends React.Component<any> {

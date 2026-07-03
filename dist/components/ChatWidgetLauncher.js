@@ -1,11 +1,10 @@
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { Animated, Modal, Pressable, StyleSheet, Text, View, } from "react-native";
 import { ChatWidgetProvider } from "../provider/ChatWidgetProvider";
 import { ChatWidgetBody } from "./ChatWidgetBody";
 import { WidgetLauncherIcon } from "./WidgetLauncherIcon";
-import { signalChatClosed } from "../client/conversation-messages";
-import { mergeWidgetConfig, createChatSessionId, logoLetter } from "../utils/session";
+import { mergeWidgetConfig, logoLetter } from "../utils/session";
 import { useBottomSafeInset } from "../utils/safe-area";
 import { glassSurfaces } from "../theme/widget-glass";
 import { applyThemeToWidgetConfig, resolveWidgetColorScheme } from "../theme/resolve-colors";
@@ -14,15 +13,9 @@ import { useLauncherBubbleAnimation, useWidgetSheetAnimation, } from "../utils/w
 export function ChatWidgetLauncher(props) {
     const bottomInset = useBottomSafeInset();
     const [open, setOpen] = useState(false);
-    const hadUserTurnRef = React.useRef(false);
-    const [sessionId, setSessionId] = useState(() => props.sessionId ?? createChatSessionId("rn"));
     const iconRotation = React.useRef(new Animated.Value(0)).current;
     const { mounted, backdropOpacity, panelTranslateY, panelScale } = useWidgetSheetAnimation(open);
     const bubbleAnimation = useLauncherBubbleAnimation(open);
-    const handleSessionRotate = useCallback((nextSessionId) => {
-        setSessionId(nextSessionId);
-        hadUserTurnRef.current = false;
-    }, []);
     useEffect(() => {
         Animated.spring(iconRotation, {
             toValue: open ? 1 : 0,
@@ -32,36 +25,12 @@ export function ChatWidgetLauncher(props) {
             mass: 0.7,
         }).start();
     }, [iconRotation, open]);
-    useEffect(() => {
-        if (props.sessionId !== undefined) {
-            setSessionId(props.sessionId);
-        }
-    }, [props.sessionId]);
     const handleClose = () => {
-        if (hadUserTurnRef.current) {
-            signalChatClosed(props.tenantId, sessionId, {
-                productId: "customer_support",
-                apiKey: props.publishableKey,
-            });
-        }
         setOpen(false);
     };
     const toggleOpen = () => {
         setOpen((wasOpen) => {
-            const next = !wasOpen;
-            if (!next) {
-                if (hadUserTurnRef.current) {
-                    signalChatClosed(props.tenantId, sessionId, {
-                        productId: "customer_support",
-                        apiKey: props.publishableKey,
-                    });
-                }
-            }
-            else if (props.sessionId === undefined) {
-                setSessionId(createChatSessionId("rn"));
-                hadUserTurnRef.current = false;
-            }
-            return next;
+            return !wasOpen;
         });
     };
     const baseConfig = mergeWidgetConfig();
@@ -95,10 +64,7 @@ export function ChatWidgetLauncher(props) {
                                     shadowColor: glass.shadow,
                                     transform: [{ translateY: panelTranslateY }, { scale: panelScale }],
                                 },
-                            ], children: _jsx(ChatWidgetProvider, { ...props, profile: props.profile ?? "mobile", sessionId: sessionId, onSessionRotate: handleSessionRotate, onUserMessage: (text) => {
-                                    hadUserTurnRef.current = true;
-                                    props.onUserMessage?.(text);
-                                }, children: _jsx(ChatWidgetBody, { variant: "launcher", onClose: handleClose }) }) })] }) })] }));
+                            ], children: _jsx(ChatWidgetProvider, { ...props, profile: props.profile ?? "mobile", children: _jsx(ChatWidgetBody, { variant: "launcher", onClose: handleClose }) }) })] }) })] }));
 }
 const styles = StyleSheet.create({
     bubble: {

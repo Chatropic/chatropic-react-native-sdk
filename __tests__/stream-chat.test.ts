@@ -59,6 +59,11 @@ describe("extractAgentDisplayText", () => {
     const text = "Hello world\n---suggested_replies---\n[]";
     expect(extractAgentDisplayText(text)).toBe("Hello world");
   });
+
+  it("strips partial resolution offer trailers", () => {
+    const text = "Did that solve your issue?\n---resolution_offer";
+    expect(extractAgentDisplayText(text)).toBe("Did that solve your issue?");
+  });
 });
 
 describe("suggestedRepliesFromDoneData", () => {

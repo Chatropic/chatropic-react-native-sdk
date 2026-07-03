@@ -1,5 +1,5 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import { ScrollView, StyleSheet, Text, View, } from "react-native";
 import { useChatWidget } from "../provider/ChatWidgetProvider";
 import { resolveSaasThreadBackground, themeSurfaceColors, } from "../theme/resolve-colors";
@@ -25,6 +25,9 @@ export function ChatWidgetBody({ variant = "launcher", onClose, onBack, }) {
     const hasUserTurn = turns.some((turn) => turn.role === "user");
     const showSuggestedPrompts = config.suggestedPrompts.length > 0 && !hasUserTurn && !inputLocked;
     const enteringTurnIds = useEnteringTurnIds(turns.map((turn) => turn.id));
+    const scrollToBottom = useCallback((animated = true) => {
+        scrollRef.current?.scrollToEnd({ animated });
+    }, []);
     const closeResolvedSession = () => {
         if (conversationResolved) {
             resetChat();
@@ -43,8 +46,8 @@ export function ChatWidgetBody({ variant = "launcher", onClose, onBack, }) {
         }
         : undefined;
     useEffect(() => {
-        scrollRef.current?.scrollToEnd({ animated: true });
-    }, [turns]);
+        scrollToBottom();
+    }, [scrollToBottom, turns]);
     if (loading) {
         return (_jsxs(View, { style: [
                 styles.root,
@@ -67,7 +70,12 @@ export function ChatWidgetBody({ variant = "launcher", onClose, onBack, }) {
             styles.root,
             variant === "launcher" ? styles.launcherShell : undefined,
             { backgroundColor: variant === "launcher" ? "transparent" : threadBg },
-        ], children: [showHeader ? (_jsx(WidgetHeader, { config: config, colorScheme: colorScheme, onClose: handleClose, onBack: variant === "fullscreen" ? handleBack : undefined, topInset: variant === "fullscreen" ? topInset : 0, showMenu: !handleClose, conversationResolved: conversationResolved })) : null, _jsxs(View, { style: [styles.threadColumn, { backgroundColor: threadBg }], children: [_jsx(ScrollView, { ref: scrollRef, style: styles.thread, contentContainerStyle: styles.threadContent, keyboardShouldPersistTaps: "handled", children: _jsx(View, { style: styles.turnList, children: turns.map((turn) => (_jsx(ChatWidgetTurn, { turn: turn, animate: turn.id ? enteringTurnIds.has(turn.id) : false }, turn.id))) }) }), showSuggestedPrompts ? (_jsx(SuggestedPromptChips, { prompts: config.suggestedPrompts, onSelect: (prompt) => sendMessage(prompt), colorScheme: colorScheme, disabled: inputLocked, align: "end", layout: "stack" })) : null] }), _jsxs(View, { style: { backgroundColor: threadBg }, children: [_jsx(PrivacyBanner, { config: config, colorScheme: colorScheme, dismissed: privacyDismissed, onDismiss: dismissPrivacy }), voiceError ? (_jsx(Text, { style: [styles.voiceError, { color: "#EF4444" }], children: voiceError })) : null, conversationResolved ? (_jsx(View, { style: [
+        ], children: [showHeader ? (_jsx(WidgetHeader, { config: config, colorScheme: colorScheme, onClose: handleClose, onBack: variant === "fullscreen" ? handleBack : undefined, topInset: variant === "fullscreen" ? topInset : 0, showMenu: !handleClose, conversationResolved: conversationResolved })) : null, _jsxs(View, { style: [styles.threadColumn, { backgroundColor: threadBg }], children: [_jsx(ScrollView, { ref: scrollRef, style: styles.thread, contentContainerStyle: styles.threadContent, keyboardShouldPersistTaps: "handled", onContentSizeChange: () => scrollToBottom(false), children: _jsx(View, { style: styles.turnList, children: turns.map((turn, index) => {
+                                const hasFollowUpUserTurn = turns
+                                    .slice(index + 1)
+                                    .some((nextTurn) => nextTurn.role === "user");
+                                return (_jsx(ChatWidgetTurn, { turn: turn, animate: turn.id ? enteringTurnIds.has(turn.id) : false, showSuggestedReplies: !hasFollowUpUserTurn }, turn.id));
+                            }) }) }), showSuggestedPrompts ? (_jsx(SuggestedPromptChips, { prompts: config.suggestedPrompts, onSelect: (prompt) => sendMessage(prompt), colorScheme: colorScheme, disabled: inputLocked, align: "end", layout: "stack" })) : null] }), _jsxs(View, { style: { backgroundColor: threadBg }, children: [_jsx(PrivacyBanner, { config: config, colorScheme: colorScheme, dismissed: privacyDismissed, onDismiss: dismissPrivacy }), voiceError ? (_jsx(Text, { style: [styles.voiceError, { color: "#EF4444" }], children: voiceError })) : null, conversationResolved ? (_jsx(View, { style: [
                             styles.noticeBanner,
                             isDark ? styles.resolvedBannerDark : styles.resolvedBannerLight,
                         ], children: _jsx(Text, { style: [styles.noticeText, { color: isDark ? "#6EE7B7" : "#065F46" }], children: "\u2713 This conversation has been resolved. Start a new chat if you need more help." }) })) : sessionHandoffNotice ? (_jsx(View, { style: [

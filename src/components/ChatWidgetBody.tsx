@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useCallback } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -67,6 +67,9 @@ export function ChatWidgetBody({
     config.suggestedPrompts.length > 0 && !hasUserTurn && !inputLocked;
 
   const enteringTurnIds = useEnteringTurnIds(turns.map((turn) => turn.id));
+  const scrollToBottom = useCallback((animated = true) => {
+    scrollRef.current?.scrollToEnd({ animated });
+  }, []);
 
   const closeResolvedSession = () => {
     if (conversationResolved) {
@@ -89,8 +92,8 @@ export function ChatWidgetBody({
     : undefined;
 
   useEffect(() => {
-    scrollRef.current?.scrollToEnd({ animated: true });
-  }, [turns]);
+    scrollToBottom();
+  }, [scrollToBottom, turns]);
 
   if (loading) {
     return (
@@ -179,15 +182,22 @@ export function ChatWidgetBody({
           style={styles.thread}
           contentContainerStyle={styles.threadContent}
           keyboardShouldPersistTaps="handled"
+          onContentSizeChange={() => scrollToBottom(false)}
         >
           <View style={styles.turnList}>
-            {turns.map((turn) => (
-              <ChatWidgetTurn
-                key={turn.id}
-                turn={turn}
-                animate={turn.id ? enteringTurnIds.has(turn.id) : false}
-              />
-            ))}
+            {turns.map((turn, index) => {
+              const hasFollowUpUserTurn = turns
+                .slice(index + 1)
+                .some((nextTurn) => nextTurn.role === "user");
+              return (
+                <ChatWidgetTurn
+                  key={turn.id}
+                  turn={turn}
+                  animate={turn.id ? enteringTurnIds.has(turn.id) : false}
+                  showSuggestedReplies={!hasFollowUpUserTurn}
+                />
+              );
+            })}
           </View>
         </ScrollView>
 

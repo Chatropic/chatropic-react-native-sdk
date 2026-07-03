@@ -4,7 +4,6 @@ import type { ChatWidgetProps } from "../types";
 import { ChatWidgetProvider, useChatWidget } from "../provider/ChatWidgetProvider";
 import { ChatWidgetBody } from "./ChatWidgetBody";
 import { glassPageBackdropColors } from "../theme/widget-glass";
-import { signalChatClosed } from "../client/conversation-messages";
 
 function FullscreenStatusBar() {
   const { config, colorScheme } = useChatWidget();
@@ -24,32 +23,15 @@ function GlassBackdrop({ children }: { children: React.ReactNode }) {
   );
 }
 
-/**
- * Inner component — rendered inside ChatWidgetProvider so it can read the
- * live sessionId from context, which may differ from the prop when the
- * provider auto-generates or rotates the session.
- */
+/** Inner component rendered inside ChatWidgetProvider for themed fullscreen UI. */
 function FullscreenContent({
   onBack,
-  tenantId,
-  apiKey,
-  productId,
 }: {
   onBack?: () => void;
-  tenantId?: string;
-  apiKey?: string;
-  productId?: string;
 }) {
-  const { sessionId, turns } = useChatWidget();
-
   const handleBack = useCallback(() => {
-    // Only signal resolution if there were real user turns in this session.
-    const hasUserTurns = turns.some((t) => t.role === "user");
-    if (hasUserTurns) {
-      signalChatClosed(tenantId, sessionId, { productId, apiKey });
-    }
     onBack?.();
-  }, [onBack, tenantId, apiKey, sessionId, productId, turns]);
+  }, [onBack]);
 
   const onHardwareBack = useCallback(() => {
     handleBack();
@@ -75,9 +57,6 @@ export function ChatWidgetScreen(props: ChatWidgetProps) {
     <ChatWidgetProvider {...props} profile={props.profile ?? "mobile"}>
       <FullscreenContent
         onBack={props.onBack}
-        tenantId={props.tenantId}
-        apiKey={props.publishableKey}
-        productId="customer_support"
       />
     </ChatWidgetProvider>
   );

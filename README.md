@@ -79,6 +79,15 @@ export function SupportScreen({ user }) {
 
 The SDK includes the Chatropic production host. You do not need to configure an API host in your app.
 
+For SDK development, write the development endpoint into the SDK before building:
+
+```bash
+CHATROPIC_SDK_DEVELOPMENT_AGENT_URL=http://localhost:8000 npm run write:development-endpoint
+npm run build
+```
+
+Use `CHATROPIC_SDK_PRODUCTION_AGENT_URL` with `npm run write:production-endpoint` when preparing a production package.
+
 ## Signed-In Users
 
 Signed-in apps can pass user context so Chatropic can associate conversations with known app users and forward the user id into configured action templates.

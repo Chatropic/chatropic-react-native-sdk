@@ -24,6 +24,8 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "write:development-endpoint": "node scripts/write-development-endpoint.js",
+    "write:production-endpoint": "node scripts/write-production-endpoint.js",
     "prepack": "npm run build",
     "release:scan": "node scripts/scan-package-surface.js",
     "test": "jest",
