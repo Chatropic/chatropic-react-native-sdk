@@ -115,6 +115,8 @@ export interface ChatWidgetProps {
     userName?: string;
     /** Visitor email for chat logs. */
     userEmail?: string;
+    /** Optional storage adapter for persisting the current chat session. */
+    storage?: import("./storage/types").ChatStorage;
     theme?: ColorScheme;
     onNavigate?: (path: string) => void;
     onBack?: () => void;

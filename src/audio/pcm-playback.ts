@@ -16,6 +16,12 @@ const MIN_BATCH_MS = 180;
 const TAIL_FLUSH_MS = 140;
 /** Merge queued PCM into fewer WAV files to avoid player.replace() gaps. */
 const MAX_MERGE_MS = 600;
+/**
+ * Escape hatch for a player that never reports didJustFinish. Must be
+ * generous: firing early truncates the clip tail when file write/load
+ * latency delays the actual playback start.
+ */
+const STUCK_PLAYER_GRACE_MS = 1500;
 
 type PcmChunk = {
   pcm: Uint8Array;
@@ -217,7 +223,13 @@ export class PcmPlaybackQueue {
         const merged = this.takeMergedFromQueue();
         if (!merged) break;
 
-        const job = await this.writeJob(merged.pcm, merged.sampleRate);
+        let job: PlaybackJob;
+        try {
+          job = await this.writeJob(merged.pcm, merged.sampleRate);
+        } catch {
+          // Drop the batch that failed to write; keep draining the queue.
+          continue;
+        }
         if (this.flushed || !this.player) return;
 
         this.playing = true;
@@ -253,9 +265,14 @@ export class PcmPlaybackQueue {
       }
 
       let settled = false;
+      let escapeTimer: ReturnType<typeof setTimeout> | null = null;
       const finish = () => {
         if (settled) return;
         settled = true;
+        if (escapeTimer) {
+          clearTimeout(escapeTimer);
+          escapeTimer = null;
+        }
         this.statusSub?.remove();
         this.statusSub = null;
         resolve();
@@ -281,7 +298,10 @@ export class PcmPlaybackQueue {
         return;
       }
 
-      setTimeout(finish, job.durationSec * 1000 + 80);
+      escapeTimer = setTimeout(
+        finish,
+        job.durationSec * 1000 + STUCK_PLAYER_GRACE_MS,
+      );
     });
   }
 }

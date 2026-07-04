@@ -166,6 +166,9 @@ export class VoiceClient {
                     this.flushPlayback();
                     break;
                 case "turn_complete":
+                    // The server may end a turn without a follow-up state:listening
+                    // message, so unmute here or the mic stays paused forever.
+                    this.micPaused = false;
                     this.callbacks.onTurnComplete?.(msg.text ?? "");
                     this.callbacks.onState?.("listening");
                     break;

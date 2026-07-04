@@ -37,5 +37,5 @@ export interface ChatWidgetProviderProps extends ChatWidgetProps {
     presentation?: "launcher" | "fullscreen";
     sessionHandoffNotice?: string | null;
 }
-export declare function ChatWidgetProvider({ children, tenantId, publishableKey, profile, sessionId: fixedSessionId, endUserId, userName, userEmail, theme, onNavigate, onUserMessage, onAgentDone, onSessionRotate, sessionHandoffNotice, }: ChatWidgetProviderProps): React.JSX.Element;
+export declare function ChatWidgetProvider({ children, tenantId, publishableKey, profile, sessionId: fixedSessionId, endUserId, userName, userEmail, storage, theme, onNavigate, onUserMessage, onAgentDone, onSessionRotate, sessionHandoffNotice, }: ChatWidgetProviderProps): React.JSX.Element;
 export {};

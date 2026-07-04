@@ -2,6 +2,7 @@ import { jsx as _jsx } from "react/jsx-runtime";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, } from "react";
 import { extractAgentDisplayText, fetchPublicAppConfig, mapUiRender, resolveTurnUiFromDoneData, streamChat, suggestedRepliesFromDoneData, } from "../client/stream-chat";
 import { VoiceClient, } from "../client/voice-client";
+import { fetchSessionConversationMessages } from "../client/conversation-messages";
 import { playSentSound, playReceivedSound, } from "../audio/message-sounds";
 import { applyThemeToWidgetConfig, resolveWidgetColorScheme, } from "../theme/resolve-colors";
 import { createChatSessionId, createTurnId, mergeWidgetConfig, } from "../utils/session";
@@ -43,7 +44,7 @@ const RESOLVED_SESSION_MESSAGE = "This conversation was closed. Send a new messa
 function hasUserTurn(turns) {
     return turns.some((turn) => turn.role === "user");
 }
-export function ChatWidgetProvider({ children, tenantId, publishableKey, profile = "chat", sessionId: fixedSessionId, endUserId, userName, userEmail, theme, onNavigate, onUserMessage, onAgentDone, onSessionRotate, sessionHandoffNotice = null, }) {
+export function ChatWidgetProvider({ children, tenantId, publishableKey, profile = "chat", sessionId: fixedSessionId, endUserId, userName, userEmail, storage, theme, onNavigate, onUserMessage, onAgentDone, onSessionRotate, sessionHandoffNotice = null, }) {
     const runtimeApiKey = publishableKey;
     const agentUrl = getDefaultAgentUrl();
     const productId = "customer_support";
@@ -61,7 +62,7 @@ export function ChatWidgetProvider({ children, tenantId, publishableKey, profile
     const [conversationResolved, setConversationResolved] = useState(false);
     const [storageHydrated, setStorageHydrated] = useState(false);
     const sessionIdRef = useRef(fixedSessionId ?? createChatSessionId("rn"));
-    const storageRef = useRef(getInternalChatStorage());
+    const chatStorage = useMemo(() => storage ?? getInternalChatStorage(), [storage]);
     const abortRef = useRef(null);
     const pendingSendTimerRef = useRef(null);
     const voiceClientRef = useRef(null);
@@ -156,13 +157,45 @@ export function ChatWidgetProvider({ children, tenantId, publishableKey, profile
         let cancelled = false;
         setStorageHydrated(false);
         setConversationResolved(false);
-        storageRef.current
+        chatStorage
             .load(storageScope)
-            .then((cached) => {
+            .then(async (cached) => {
             if (cancelled)
                 return;
             const canRestoreSession = !fixedSessionId || cached?.sessionId === fixedSessionId;
             if (cached && canRestoreSession) {
+                if (runtimeApiKey?.trim()) {
+                    try {
+                        const server = await fetchSessionConversationMessages(tenantId, cached.sessionId, {
+                            agentUrl,
+                            productId,
+                            apiKey: runtimeApiKey,
+                            limit: 1,
+                        });
+                        if (cancelled)
+                            return;
+                        if (server.resolved) {
+                            await chatStorage.clear(storageScope);
+                            if (fixedSessionId) {
+                                setConversationResolved(true);
+                                setTurns([]);
+                                initializedRef.current = false;
+                            }
+                            else {
+                                const nextSessionId = createChatSessionId("rn");
+                                sessionIdRef.current = nextSessionId;
+                                onSessionRotate?.(nextSessionId);
+                                setTurns([]);
+                                initializedRef.current = false;
+                            }
+                            lastLoadedScopeRef.current = storageScopeKey;
+                            return;
+                        }
+                    }
+                    catch {
+                        // Offline or transient status checks should not erase local chat history.
+                    }
+                }
                 sessionIdRef.current = cached.sessionId;
                 onSessionRotate?.(cached.sessionId);
                 setTurns(cached.turns);
@@ -196,7 +229,17 @@ export function ChatWidgetProvider({ children, tenantId, publishableKey, profile
         return () => {
             cancelled = true;
         };
-    }, [fixedSessionId, onSessionRotate, storageScope, storageScopeKey]);
+    }, [
+        fixedSessionId,
+        onSessionRotate,
+        storageScope,
+        storageScopeKey,
+        runtimeApiKey,
+        tenantId,
+        agentUrl,
+        productId,
+        chatStorage,
+    ]);
     useEffect(() => {
         if (loading || !storageHydrated || initializedRef.current)
             return;
@@ -209,17 +252,17 @@ export function ChatWidgetProvider({ children, tenantId, publishableKey, profile
         if (!storageHydrated)
             return;
         if (conversationResolved) {
-            void storageRef.current.clear(storageScope);
+            void chatStorage.clear(storageScope);
             return;
         }
         if (!hasUserTurn(turns))
             return;
-        void storageRef.current.save(storageScope, {
+        void chatStorage.save(storageScope, {
             sessionId: sessionIdRef.current,
             turns,
             updatedAt: Date.now(),
         });
-    }, [storageHydrated, conversationResolved, storageScope, turns]);
+    }, [storageHydrated, conversationResolved, storageScope, turns, chatStorage]);
     const appendSingleTurn = useCallback((turn) => {
         setTurns((prev) => [...prev, turn]);
     }, []);
