@@ -29,9 +29,14 @@ function AgentAvatar({ isDark }: { isDark: boolean }) {
 interface ChatWidgetTurnProps {
   turn: Turn;
   animate?: boolean;
+  showSuggestedReplies?: boolean;
 }
 
-export function ChatWidgetTurn({ turn, animate = false }: ChatWidgetTurnProps) {
+export function ChatWidgetTurn({
+  turn,
+  animate = false,
+  showSuggestedReplies = true,
+}: ChatWidgetTurnProps) {
   const { config, colorScheme, sendMessage, inputLocked, onNavigate, sessionId, agentUrl, tenantId, apiKey, productId } =
     useChatWidget();
 
@@ -114,7 +119,7 @@ export function ChatWidgetTurn({ turn, animate = false }: ChatWidgetTurnProps) {
           </View>
         ) : null}
 
-        {turn.suggestedReplies?.length ? (
+        {showSuggestedReplies && turn.suggestedReplies?.length ? (
           <View style={styles.replyChips}>
             <SuggestedPromptChips
               prompts={turn.suggestedReplies}

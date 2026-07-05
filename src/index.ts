@@ -93,21 +93,15 @@ export {
   launcherButtonStyle,
 } from "./theme/launcher-assets";
 
-export { parseLinearGradient } from "./theme/parse-gradient";
-export { formatRelativeTime } from "./utils/format-time";
-
 export {
   createChatStorage,
   createMemoryKeyValueStorage,
   createResilientKeyValueStorage,
 } from "./storage/create-chat-storage";
+export type { ChatStorage, KeyValueStorage } from "./storage/types";
 
-export type {
-  CachedChatSession,
-  ChatHistoryScope,
-  ChatStorage,
-  KeyValueStorage,
-} from "./storage/types";
+export { parseLinearGradient } from "./theme/parse-gradient";
+export { formatRelativeTime } from "./utils/format-time";
 
 export {
   emptyWidgetConfig,

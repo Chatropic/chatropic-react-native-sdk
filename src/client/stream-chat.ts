@@ -124,19 +124,16 @@ export function suggestedRepliesFromDoneData(
   return replies.length ? replies : undefined;
 }
 
-const SUGGESTED_REPLIES_MARKER = "---suggested_replies---";
-const RESOLUTION_OFFER_MARKER = "---resolution_offer---";
+const INTERNAL_TRAILER_PATTERNS = [
+  /\s*---\s*suggested[_\s-]*replies\s*(?:---)?[\s\S]*$/i,
+  /\s*---\s*resolution[_\s-]*offer\s*(?:---)?[\s\S]*$/i,
+];
 
-function stripSuggestedRepliesTrailer(raw: string): string {
-  const markerIdx = raw.indexOf(SUGGESTED_REPLIES_MARKER);
-  if (markerIdx < 0) return raw;
-  return raw.slice(0, markerIdx);
-}
-
-function stripResolutionOfferTrailer(raw: string): string {
-  const markerIdx = raw.indexOf(RESOLUTION_OFFER_MARKER);
-  if (markerIdx < 0) return raw;
-  return raw.slice(0, markerIdx);
+function stripInternalTrailers(raw: string): string {
+  return INTERNAL_TRAILER_PATTERNS.reduce(
+    (text, pattern) => text.replace(pattern, ""),
+    raw,
+  );
 }
 
 function stripChatCodeFences(text: string): string {
@@ -168,8 +165,7 @@ function stripMarkdownSyntax(text: string): string {
 }
 
 export function extractAgentDisplayText(raw: string): string {
-  let text = stripSuggestedRepliesTrailer(raw);
-  text = stripResolutionOfferTrailer(text);
+  const text = stripInternalTrailers(raw);
   const trimmed = text.trim();
   if (!trimmed) return "";
   if (trimmed.startsWith("```")) return "";

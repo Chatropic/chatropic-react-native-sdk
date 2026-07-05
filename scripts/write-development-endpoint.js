@@ -5,12 +5,12 @@ const generatedPath = path.join("src", "config", "generated.ts");
 const current = fs.existsSync(generatedPath)
   ? fs.readFileSync(generatedPath, "utf8")
   : "";
-const developmentUrl =
-  extractConst(current, "CHATROPIC_GENERATED_DEVELOPMENT_AGENT_URL") || "";
-const rawUrl = process.env.CHATROPIC_SDK_PRODUCTION_AGENT_URL;
+const productionUrl =
+  extractConst(current, "CHATROPIC_GENERATED_PRODUCTION_AGENT_URL") || "";
+const rawUrl = process.env.CHATROPIC_SDK_DEVELOPMENT_AGENT_URL;
 
 if (!rawUrl || !rawUrl.trim()) {
-  console.error("CHATROPIC_SDK_PRODUCTION_AGENT_URL secret is required");
+  console.error("CHATROPIC_SDK_DEVELOPMENT_AGENT_URL is required");
   process.exit(1);
 }
 
@@ -18,24 +18,24 @@ let parsed;
 try {
   parsed = new URL(rawUrl.trim());
 } catch {
-  console.error("CHATROPIC_SDK_PRODUCTION_AGENT_URL must be a valid absolute URL");
-  process.exit(1);
-}
-
-if (parsed.protocol !== "https:") {
-  console.error("CHATROPIC_SDK_PRODUCTION_AGENT_URL must use https://");
+  console.error("CHATROPIC_SDK_DEVELOPMENT_AGENT_URL must be a valid absolute URL");
   process.exit(1);
 }
 
 const hostname = parsed.hostname.toLowerCase();
-const isLoopback =
+const isLocal =
   hostname === "localhost" ||
   hostname === "0.0.0.0" ||
   hostname === "::1" ||
-  hostname.startsWith("127.");
+  hostname.startsWith("127.") ||
+  /^10\./.test(hostname) ||
+  /^192\.168\./.test(hostname) ||
+  /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname);
 
-if (isLoopback) {
-  console.error("CHATROPIC_SDK_PRODUCTION_AGENT_URL cannot point to a local host");
+if (parsed.protocol !== "https:" && !(parsed.protocol === "http:" && isLocal)) {
+  console.error(
+    "CHATROPIC_SDK_DEVELOPMENT_AGENT_URL must use https://, except http:// is allowed for local development hosts",
+  );
   process.exit(1);
 }
 
@@ -46,8 +46,8 @@ const cleanUrl = parsed.toString().replace(/\/+$/, "");
 fs.writeFileSync(
   generatedPath,
   generatedOutput({
-    developmentUrl,
-    productionUrl: cleanUrl,
+    developmentUrl: cleanUrl,
+    productionUrl,
   }),
 );
 

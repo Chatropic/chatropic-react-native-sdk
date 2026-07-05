@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Animated,
   Modal,
@@ -11,8 +11,7 @@ import type { ChatWidgetProps } from "../types";
 import { ChatWidgetProvider } from "../provider/ChatWidgetProvider";
 import { ChatWidgetBody } from "./ChatWidgetBody";
 import { WidgetLauncherIcon } from "./WidgetLauncherIcon";
-import { signalChatClosed } from "../client/conversation-messages";
-import { mergeWidgetConfig, createChatSessionId, logoLetter } from "../utils/session";
+import { mergeWidgetConfig, logoLetter } from "../utils/session";
 import { useBottomSafeInset } from "../utils/safe-area";
 import { glassSurfaces } from "../theme/widget-glass";
 import { applyThemeToWidgetConfig, resolveWidgetColorScheme } from "../theme/resolve-colors";
@@ -25,19 +24,10 @@ import {
 export function ChatWidgetLauncher(props: ChatWidgetProps) {
   const bottomInset = useBottomSafeInset();
   const [open, setOpen] = useState(false);
-  const hadUserTurnRef = React.useRef(false);
-  const [sessionId, setSessionId] = useState(
-    () => props.sessionId ?? createChatSessionId("rn"),
-  );
   const iconRotation = React.useRef(new Animated.Value(0)).current;
   const { mounted, backdropOpacity, panelTranslateY, panelScale } =
     useWidgetSheetAnimation(open);
   const bubbleAnimation = useLauncherBubbleAnimation(open);
-
-  const handleSessionRotate = useCallback((nextSessionId: string) => {
-    setSessionId(nextSessionId);
-    hadUserTurnRef.current = false;
-  }, []);
 
   useEffect(() => {
     Animated.spring(iconRotation, {
@@ -49,37 +39,13 @@ export function ChatWidgetLauncher(props: ChatWidgetProps) {
     }).start();
   }, [iconRotation, open]);
 
-  useEffect(() => {
-    if (props.sessionId !== undefined) {
-      setSessionId(props.sessionId);
-    }
-  }, [props.sessionId]);
-
   const handleClose = () => {
-    if (hadUserTurnRef.current) {
-      signalChatClosed(props.tenantId, sessionId, {
-        productId: "customer_support",
-        apiKey: props.publishableKey,
-      });
-    }
     setOpen(false);
   };
 
   const toggleOpen = () => {
     setOpen((wasOpen) => {
-      const next = !wasOpen;
-      if (!next) {
-        if (hadUserTurnRef.current) {
-          signalChatClosed(props.tenantId, sessionId, {
-              productId: "customer_support",
-            apiKey: props.publishableKey,
-          });
-        }
-      } else if (props.sessionId === undefined) {
-        setSessionId(createChatSessionId("rn"));
-        hadUserTurnRef.current = false;
-      }
-      return next;
+      return !wasOpen;
     });
   };
 
@@ -158,12 +124,6 @@ export function ChatWidgetLauncher(props: ChatWidgetProps) {
             <ChatWidgetProvider
               {...props}
               profile={props.profile ?? "mobile"}
-              sessionId={sessionId}
-              onSessionRotate={handleSessionRotate}
-              onUserMessage={(text) => {
-                hadUserTurnRef.current = true;
-                props.onUserMessage?.(text);
-              }}
             >
               <ChatWidgetBody
                 variant="launcher"
