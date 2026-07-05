@@ -56,7 +56,7 @@ jobs:
 
       - name: Build
         env:
-          CHATROPIC_GENERATED_PRODUCTION_AGENT_URL: ${{ vars.CHATROPIC_GENERATED_PRODUCTION_AGENT_URL }}
+          CHATROPIC_GENERATED_PRODUCTION_AGENT_URL: ${{ secrets.CHATROPIC_GENERATED_PRODUCTION_AGENT_URL }}
         run: npm run build:production
 
       - name: Preview package contents
