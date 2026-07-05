@@ -88,7 +88,7 @@ The SDK does not include a default API host. Select a build environment and prov
 For production packages:
 
 ```bash
-CHATROPIC_GENERATED_PRODUCTION_AGENT_URL=https://app.chatropic.com npm run build:production
+CHATROPIC_SDK_PRODUCTION_AGENT_URL=https://app.chatropic.com npm run build:production
 ```
 
 For SDK development builds:
@@ -97,7 +97,7 @@ For SDK development builds:
 CHATROPIC_GENERATED_DEVELOPMENT_AGENT_URL=https://dev-api.example.com npm run build:development
 ```
 
-The legacy `CHATROPIC_SDK_PRODUCTION_AGENT_URL` and `CHATROPIC_SDK_DEVELOPMENT_AGENT_URL` names still work with the endpoint writer scripts.
+The development endpoint writer also accepts `CHATROPIC_SDK_DEVELOPMENT_AGENT_URL` for local SDK workflows.
 
 ## Signed-In Users
 

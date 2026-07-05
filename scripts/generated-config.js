@@ -42,19 +42,24 @@ function writeConfig({ developmentUrl = "", productionUrl = "" }) {
 }
 
 function envValueForVariant(variant) {
-  return process.env[GENERATED_CONSTS[variant]] ?? process.env[LEGACY_ENV[variant]];
+  const envName = envNameForVariant(variant);
+  return process.env[envName];
+}
+
+function envNameForVariant(variant) {
+  return variant === "production" ? LEGACY_ENV.production : GENERATED_CONSTS.development;
 }
 
 function normalizeUrl(rawUrl, variant) {
   if (!rawUrl || !rawUrl.trim()) {
-    throw new Error(`${GENERATED_CONSTS[variant]} is required for ${variant} builds`);
+    throw new Error(`${envNameForVariant(variant)} is required for ${variant} builds`);
   }
 
   let parsed;
   try {
     parsed = new URL(rawUrl.trim());
   } catch {
-    throw new Error(`${GENERATED_CONSTS[variant]} must be a valid absolute URL`);
+    throw new Error(`${envNameForVariant(variant)} must be a valid absolute URL`);
   }
 
   const hostname = parsed.hostname.toLowerCase();
@@ -71,14 +76,14 @@ function normalizeUrl(rawUrl, variant) {
 
   if (variant === "production") {
     if (parsed.protocol !== "https:") {
-      throw new Error(`${GENERATED_CONSTS[variant]} must use https://`);
+      throw new Error(`${envNameForVariant(variant)} must use https://`);
     }
     if (isLoopback) {
-      throw new Error(`${GENERATED_CONSTS[variant]} cannot point to a local host`);
+      throw new Error(`${envNameForVariant(variant)} cannot point to a local host`);
     }
   } else if (parsed.protocol !== "https:" && !(parsed.protocol === "http:" && isPrivateNetwork)) {
     throw new Error(
-      `${GENERATED_CONSTS[variant]} must use https://, except http:// is allowed for local development hosts`,
+      `${envNameForVariant(variant)} must use https://, except http:// is allowed for local development hosts`,
     );
   }
 
@@ -98,6 +103,7 @@ function parseVariant(rawVariant) {
 module.exports = {
   GENERATED_CONSTS,
   envValueForVariant,
+  envNameForVariant,
   normalizeUrl,
   parseVariant,
   readConfig,
