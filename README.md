@@ -83,16 +83,21 @@ The local cache is cleared only when the backend sends `conversation_resolved`.
 
 ## API Host
 
-The SDK includes the Chatropic production host. You do not need to configure an API host in your app.
+The SDK does not include a default API host. Select a build environment and provide the matching generated URL before packaging the SDK.
 
-For SDK development, write the development endpoint into the SDK before building:
+For production packages:
 
 ```bash
-CHATROPIC_SDK_DEVELOPMENT_AGENT_URL=http://localhost:8000 npm run write:development-endpoint
-npm run build
+CHATROPIC_GENERATED_PRODUCTION_AGENT_URL=https://app.chatropic.com npm run build:production
 ```
 
-Use `CHATROPIC_SDK_PRODUCTION_AGENT_URL` with `npm run write:production-endpoint` when preparing a production package.
+For SDK development builds:
+
+```bash
+CHATROPIC_GENERATED_DEVELOPMENT_AGENT_URL=https://dev-api.example.com npm run build:development
+```
+
+The legacy `CHATROPIC_SDK_PRODUCTION_AGENT_URL` and `CHATROPIC_SDK_DEVELOPMENT_AGENT_URL` names still work with the endpoint writer scripts.
 
 ## Signed-In Users
 
