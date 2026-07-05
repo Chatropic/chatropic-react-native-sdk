@@ -31,6 +31,19 @@ function cleanUrl(value: string): string {
   return value.replace(/\/+$/, "");
 }
 
+function requireAgentUrl(
+  value: string,
+  environment: Exclude<ChatropicEnvironmentName, "auto">,
+): string {
+  const clean = cleanUrl(value.trim());
+  if (!clean) {
+    throw new Error(
+      `Chatropic ${environment} agent URL is not configured. Run npm run build:${environment} with CHATROPIC_GENERATED_${environment.toUpperCase()}_AGENT_URL set.`,
+    );
+  }
+  return clean;
+}
+
 export function resolveChatropicEnvironment(
   options: ChatropicEnvironmentOptions = {},
 ): ChatropicEnvironmentConfig {
@@ -44,10 +57,11 @@ export function resolveChatropicEnvironment(
 
   return {
     name,
-    agentUrl: cleanUrl(
+    agentUrl: requireAgentUrl(
       name === "development"
         ? CHATROPIC_DEVELOPMENT_AGENT_URL
         : CHATROPIC_PRODUCTION_AGENT_URL,
+      name,
     ),
   };
 }
