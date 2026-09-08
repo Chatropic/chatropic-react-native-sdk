@@ -84,3 +84,9 @@ export function getInternalChatStorage(): ChatStorage {
   }
   return sharedStorage;
 }
+
+let imageGrantStorage: KeyValueStorage | undefined;
+export function getImageGrantStorage(): KeyValueStorage {
+  if (!imageGrantStorage) imageGrantStorage = createResilientKeyValueStorage(createNativeAsyncStorage() ?? createMemoryKeyValueStorage());
+  return imageGrantStorage;
+}
