@@ -1,3 +1,4 @@
+import { attachmentRefs, type ChatAttachment, type ImagePicker } from "../client/image-attachments";
 import React, {
   createContext,
   useCallback,
@@ -21,7 +22,7 @@ import {
   type VoiceAgentState,
   type VoiceTranscriptLine,
 } from "../client/voice-client";
-import { fetchSessionConversationMessages } from "../client/conversation-messages";
+import { fetchSessionConversationMessages, serverMessagesToTurns } from "../client/conversation-messages";
 import {
   playSentSound,
   playReceivedSound,
@@ -46,7 +47,7 @@ import {
 } from "../utils/session";
 import { getDefaultAgentUrl } from "../config/environment";
 import { getInternalChatStorage } from "../storage/internal-chat-storage";
-import type { ChatHistoryScope } from "../storage/types";
+import type { CachedChatSession, ChatHistoryScope } from "../storage/types";
 
 function turnsToAgentHistory(turns: Turn[]): AgentHistoryMessage[] {
   const rows: AgentHistoryMessage[] = [];
@@ -61,6 +62,7 @@ function turnsToAgentHistory(turns: Turn[]): AgentHistoryMessage[] {
 }
 
 interface ChatWidgetContextValue {
+  imagePicker?: ImagePicker;
   config: WidgetConfig;
   colorScheme: ColorScheme;
   turns: Turn[];
@@ -68,9 +70,13 @@ interface ChatWidgetContextValue {
   setInput: (v: string) => void;
   sendMessage: (
     text?: string,
-    options?: { displayText?: string },
+    options?: { displayText?: string; attachments?: ChatAttachment[]; onSuccess?: () => void },
   ) => void;
   resetChat: () => void;
+  recentChats: CachedChatSession[];
+  refreshRecentChats: () => Promise<void>;
+  resumeChat: (chat: CachedChatSession, signal?: AbortSignal) => Promise<void>;
+  canChangeSession: boolean;
   privacyDismissed: boolean;
   dismissPrivacy: () => void;
   inputLocked: boolean;
@@ -127,6 +133,7 @@ export interface ChatWidgetProviderProps extends ChatWidgetProps {
 
 export function ChatWidgetProvider({
   children,
+  imagePicker,
   tenantId,
   publishableKey,
   profile = "chat",
@@ -149,6 +156,7 @@ export function ChatWidgetProvider({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [turns, setTurns] = useState<Turn[]>([]);
+  const [recentChats, setRecentChats] = useState<CachedChatSession[]>([]);
   const [input, setInput] = useState("");
   const [privacyDismissed, setPrivacyDismissed] = useState(false);
   const [inputLocked, setInputLocked] = useState(false);
@@ -193,6 +201,19 @@ export function ChatWidgetProvider({
       ].join("\u001f"),
     [storageScope],
   );
+
+  const activeScopeRef = useRef(storageScopeKey);
+  activeScopeRef.current = storageScopeKey;
+  const canChangeSession = fixedSessionId === undefined || Boolean(onSessionRotate);
+  const refreshRecentChats = useCallback(async () => {
+    const scope = storageScopeKey;
+    const rows = chatStorage.list
+      ? await chatStorage.list(storageScope)
+      : [await chatStorage.load(storageScope)].filter((row): row is CachedChatSession => Boolean(row));
+    if (activeScopeRef.current === scope) setRecentChats(rows.filter(row => hasUserTurn(row.turns)));
+  }, [chatStorage, storageScope, storageScopeKey]);
+
+  useEffect(() => { setRecentChats([]); }, [storageScopeKey]);
 
   const rotateSession = useCallback(() => {
     const nextSessionId = createChatSessionId("rn");
@@ -308,7 +329,7 @@ export function ChatWidgetProvider({
               );
               if (cancelled) return;
               if (server.resolved) {
-                await chatStorage.clear(storageScope);
+                await (chatStorage.clearCurrent ?? chatStorage.clear).call(chatStorage, storageScope);
                 if (fixedSessionId) {
                   setConversationResolved(true);
                   setTurns([]);
@@ -380,9 +401,9 @@ export function ChatWidgetProvider({
   }, [loading, storageHydrated, config.welcomeMessage]);
 
   useEffect(() => {
-    if (!storageHydrated) return;
+    if (!storageHydrated || lastLoadedScopeRef.current !== storageScopeKey) return;
     if (conversationResolved) {
-      void chatStorage.clear(storageScope);
+      void (chatStorage.clearCurrent ?? chatStorage.clear).call(chatStorage, storageScope);
       return;
     }
     if (!hasUserTurn(turns)) return;
@@ -390,8 +411,8 @@ export function ChatWidgetProvider({
       sessionId: sessionIdRef.current,
       turns,
       updatedAt: Date.now(),
-    });
-  }, [storageHydrated, conversationResolved, storageScope, turns, chatStorage]);
+    }).catch(() => {});
+  }, [storageHydrated, conversationResolved, storageScope, storageScopeKey, turns, chatStorage]);
 
   const appendSingleTurn = useCallback((turn: Turn) => {
     setTurns((prev) => [...prev, turn]);
@@ -557,38 +578,71 @@ export function ChatWidgetProvider({
     setInputLocked(false);
     setConversationResolved(false);
     setTurns(config.welcomeMessage ? [welcomeTurn(config.welcomeMessage)] : []);
+    void (chatStorage.clearCurrent ?? chatStorage.clear).call(chatStorage, storageScope).catch(() => {});
     initializedRef.current = true;
   }, [
     fixedSessionId,
     onSessionRotate,
     rotateSession,
+    chatStorage,
+    storageScope,
     config.welcomeMessage,
     endVoiceSession,
   ]);
 
+  const resumeChat = useCallback(async (chat: CachedChatSession, signal?: AbortSignal) => {
+    if (!canChangeSession || inputLockedRef.current) return;
+    const scope = storageScopeKey;
+    let restoredTurns = chat.turns;
+    let resolved = false;
+    if (runtimeApiKey) {
+      // Verify status before allowing a cached conversation to accept new messages.
+      const server = await fetchSessionConversationMessages(tenantId, chat.sessionId, {
+        agentUrl, productId, apiKey: runtimeApiKey,
+      });
+      resolved = server.resolved;
+      if (server.messages.length) restoredTurns = serverMessagesToTurns(server.messages, config.welcomeMessage);
+    }
+    if (signal?.aborted || activeScopeRef.current !== scope || inputLockedRef.current) return;
+    endVoiceSession();
+    abortRef.current?.();
+    abortRef.current = null;
+    if (pendingSendTimerRef.current) clearTimeout(pendingSendTimerRef.current);
+    pendingSendTimerRef.current = null;
+    sessionIdRef.current = chat.sessionId;
+    initializedRef.current = true;
+    setInput("");
+    setVoiceError(null);
+    conversationResolvedRef.current = resolved;
+    setConversationResolved(resolved);
+    setTurns(restoredTurns);
+    onSessionRotate?.(chat.sessionId);
+  }, [canChangeSession, storageScopeKey, runtimeApiKey, tenantId, agentUrl, productId, endVoiceSession, onSessionRotate, config.welcomeMessage]);
+
   const sendMessage = useCallback(
-    (text?: string, options?: { displayText?: string }) => {
+    (text?: string, options?: { displayText?: string; attachments?: ChatAttachment[]; onSuccess?: () => void }) => {
       const message = (text ?? input).trim();
-      if (!message || inputLockedRef.current) return;
+      if ((!message && !options?.attachments?.length) || inputLockedRef.current) return;
       const displayMessage = (options?.displayText ?? message).trim() || message;
 
-      if (conversationResolvedRef.current) {
+      if (conversationResolvedRef.current && !options?.attachments?.length) {
         beginFreshSession();
         const welcomeMessage = welcomeMessageRef.current;
         setTurns(welcomeMessage ? [welcomeTurn(welcomeMessage)] : []);
         initializedRef.current = true;
       }
 
-      setInput("");
+      if (!options?.attachments?.length) setInput("");
       playSentSound();
       onUserMessage?.(displayMessage);
 
-      const userTurnId = createTurnId("u");
+      const userTurnId = options?.attachments?.length ? `image-${options.attachments[0].id}` : createTurnId("u");
       const userTurnAt = Date.now();
       const userTurn: Turn = {
         id: userTurnId,
         role: "user",
         text: displayMessage,
+        attachments: options?.attachments,
         createdAt: userTurnAt,
         localId: userTurnId,
       };
@@ -604,10 +658,11 @@ export function ChatWidgetProvider({
         localId: agentTurnId,
       };
 
-      setTurns((prev) => [...prev, userTurn, agentTurn]);
+      setTurns((prev) => [...prev.filter(t => t.id !== userTurn.id), userTurn, agentTurn]);
       inputLockedRef.current = true;
       setInputLocked(true);
 
+      let failed = false;
       let accumulated = "";
       let turnUi: TurnUI | null = null;
 
@@ -639,6 +694,7 @@ export function ChatWidgetProvider({
             break;
           }
           case "agent:done": {
+            if (!failed) { options?.onSuccess?.(); if (options?.attachments?.length) setInput(""); }
             const resolvedClosed = Boolean(ev.data.conversation_resolved);
             const finalText =
               extractAgentDisplayText(
@@ -667,6 +723,7 @@ export function ChatWidgetProvider({
             break;
           }
           case "agent:error": {
+            failed = true;
             const errMsg = String(ev.data.message ?? "Something went wrong");
             updateAgentTurn({
               text: errMsg,
@@ -679,7 +736,7 @@ export function ChatWidgetProvider({
         }
       };
 
-      pendingSendTimerRef.current = setTimeout(() => {
+      pendingSendTimerRef.current = setTimeout(async () => {
         pendingSendTimerRef.current = null;
         abortRef.current?.();
         let stream: ReturnType<typeof streamChat>;
@@ -699,6 +756,9 @@ export function ChatWidgetProvider({
               userName: baseConfig.userName,
               userEmail: baseConfig.userEmail,
               history: turnsToAgentHistory(turns),
+              attachments: await attachmentRefs(options?.attachments),
+              historyAttachments: (await attachmentRefs(turns.flatMap(t => t.attachments ?? []))).slice(-80),
+              clientMessageId: userTurnId,
             },
           );
         } catch (err) {
@@ -747,6 +807,7 @@ export function ChatWidgetProvider({
 
   const value = useMemo<ChatWidgetContextValue>(
     () => ({
+      imagePicker,
       config,
       colorScheme,
       turns,
@@ -754,6 +815,10 @@ export function ChatWidgetProvider({
       setInput,
       sendMessage,
       resetChat,
+      recentChats,
+      refreshRecentChats,
+      resumeChat,
+      canChangeSession,
       privacyDismissed,
       dismissPrivacy: () => setPrivacyDismissed(true),
       inputLocked,
@@ -775,12 +840,17 @@ export function ChatWidgetProvider({
       productId,
     }),
     [
+      imagePicker,
       config,
       colorScheme,
       turns,
       input,
       sendMessage,
       resetChat,
+      recentChats,
+      refreshRecentChats,
+      resumeChat,
+      canChangeSession,
       privacyDismissed,
       inputLocked,
       loading,

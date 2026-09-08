@@ -1,3 +1,4 @@
+import { ImageAttachments } from "./ImageAttachments";
 import React from "react";
 import { Animated, StyleSheet, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
@@ -53,21 +54,22 @@ export function ChatWidgetTurn({
     turn.role === "user" ? "user" : "agent",
   );
 
-  if (turn.role === "user" && turn.text) {
+  if (turn.role === "user" && (turn.text || turn.attachments?.length)) {
     return (
       <Animated.View style={enterAnimation.style}>
-        <MessageBubble
+        <ImageAttachments images={turn.attachments} />
+        {turn.text ? <MessageBubble
           role="user"
-          text={turn.text}
+          text={turn.text ?? ""}
           config={config}
           colorScheme={colorScheme}
-        />
+        /> : null}
       </Animated.View>
     );
   }
 
   return (
-    <Animated.View style={[styles.agentRow, enterAnimation.style]}>
+    <Animated.View style={[styles.agentRow, hasWidget ? styles.fullWidth : undefined, enterAnimation.style]}>
       {/* Side avatar */}
       <View style={styles.avatarWrap}>
         <AgentAvatar isDark={isDark} />
@@ -157,7 +159,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 8,
-    width: "100%",
+    maxWidth: "92%",
   },
   avatarWrap: {
     marginTop: 2,
@@ -174,7 +176,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     alignItems: "flex-start",
-    maxWidth: "92%",
   },
   fullWidth: {
     maxWidth: "100%",

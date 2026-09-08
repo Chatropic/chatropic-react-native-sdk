@@ -2,6 +2,7 @@ import type { Turn, TurnUI } from "../types";
 import { getDefaultAgentUrl } from "../config/environment";
 
 export interface ServerConversationMessage {
+  attachments?: import("./image-attachments").ChatAttachment[];
   id: string;
   role: string;
   body: string;
@@ -55,9 +56,10 @@ export function serverMessagesToTurns(
     const ui = mapUi(message.ui);
     const author =
       message.ui?.author === "human_agent" ? ("human_agent" as const) : undefined;
-    if (!text && !ui) continue;
+    if (!text && !ui && !message.attachments?.length) continue;
     turns.push({
       id: message.id,
+      attachments: message.attachments,
       role,
       author,
       text,

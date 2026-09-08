@@ -1,5 +1,7 @@
-import React, { useRef, useEffect, useCallback } from "react";
+import React, { useRef, useEffect, useCallback, useState } from "react";
 import {
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,9 +13,9 @@ import {
   themeSurfaceColors,
 } from "../theme/resolve-colors";
 import { ChatWidgetTurn } from "./ChatWidgetTurn";
-import { PrivacyBanner } from "./PrivacyBanner";
 import { SuggestedPromptChips } from "./SuggestedPromptChips";
-import { SaasWidgetComposer } from "./SaasWidgetComposer";
+import { WidgetComposer } from "./SaasWidgetComposer";
+import { RecentChats } from "./RecentChats";
 import { WidgetHeader } from "./WidgetHeader";
 import { VoicePanel } from "./VoicePanel";
 import { ShimmerThread } from "./ShimmerThread";
@@ -26,7 +28,13 @@ interface ChatWidgetBodyProps {
   onBack?: () => void;
 }
 
-export function ChatWidgetBody({
+export function ChatWidgetBody(props: ChatWidgetBodyProps) {
+  return <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+    <ChatWidgetContent {...props} />
+  </KeyboardAvoidingView>;
+}
+
+function ChatWidgetContent({
   variant = "launcher",
   onClose,
   onBack,
@@ -39,8 +47,7 @@ export function ChatWidgetBody({
     setInput,
     sendMessage,
     resetChat,
-    privacyDismissed,
-    dismissPrivacy,
+    canChangeSession,
     inputLocked,
     loading,
     error,
@@ -53,6 +60,7 @@ export function ChatWidgetBody({
     sessionHandoffNotice,
   } = useChatWidget();
 
+  const [showRecentChats, setShowRecentChats] = useState(false);
   const topInset = useTopSafeInset();
   const scrollRef = useRef<ScrollView>(null);
   const surfaces = themeSurfaceColors(colorScheme);
@@ -111,7 +119,7 @@ export function ChatWidgetBody({
             onClose={handleClose}
             onBack={variant === "fullscreen" ? handleBack : undefined}
             topInset={variant === "fullscreen" ? topInset : 0}
-            showMenu={!handleClose}
+            showMenu={false}
           />
         ) : null}
         <View style={[styles.threadColumn, { backgroundColor: threadBg }]}>
@@ -164,100 +172,103 @@ export function ChatWidgetBody({
         { backgroundColor: variant === "launcher" ? "transparent" : threadBg },
       ]}
     >
-      {showHeader ? (
-        <WidgetHeader
-          config={config}
-          colorScheme={colorScheme}
-          onClose={handleClose}
-          onBack={variant === "fullscreen" ? handleBack : undefined}
-          topInset={variant === "fullscreen" ? topInset : 0}
-          showMenu={!handleClose}
-          conversationResolved={conversationResolved}
-        />
-      ) : null}
-
-      <View style={[styles.threadColumn, { backgroundColor: threadBg }]}>
-        <ScrollView
-          ref={scrollRef}
-          style={styles.thread}
-          contentContainerStyle={styles.threadContent}
-          keyboardShouldPersistTaps="handled"
-          onContentSizeChange={() => scrollToBottom(false)}
-        >
-          <View style={styles.turnList}>
-            {turns.map((turn, index) => {
-              const hasFollowUpUserTurn = turns
-                .slice(index + 1)
-                .some((nextTurn) => nextTurn.role === "user");
-              return (
-                <ChatWidgetTurn
-                  key={turn.id}
-                  turn={turn}
-                  animate={turn.id ? enteringTurnIds.has(turn.id) : false}
-                  showSuggestedReplies={!hasFollowUpUserTurn}
-                />
-              );
-            })}
-          </View>
-        </ScrollView>
-
-        {showSuggestedPrompts ? (
-          <SuggestedPromptChips
-            prompts={config.suggestedPrompts}
-            onSelect={(prompt) => sendMessage(prompt)}
-            colorScheme={colorScheme}
-            disabled={inputLocked}
-            align="end"
-            layout="stack"
-          />
-        ) : null}
-
-      </View>
-
-      <View style={{ backgroundColor: threadBg }}>
-        <PrivacyBanner
-          config={config}
-          colorScheme={colorScheme}
-          dismissed={privacyDismissed}
-          onDismiss={dismissPrivacy}
-        />
-        {voiceError ? (
-          <Text style={[styles.voiceError, { color: "#EF4444" }]}>{voiceError}</Text>
-        ) : null}
-        {conversationResolved ? (
-          <View
-            style={[
-              styles.noticeBanner,
-              isDark ? styles.resolvedBannerDark : styles.resolvedBannerLight,
-            ]}
-          >
-            <Text style={[styles.noticeText, { color: isDark ? "#6EE7B7" : "#065F46" }]}>
-              ✓ This conversation has been resolved. Start a new chat if you need more help.
-            </Text>
-          </View>
-        ) : sessionHandoffNotice ? (
-          <View
-            style={[
-              styles.noticeBanner,
-              isDark ? styles.handoffBannerDark : styles.handoffBannerLight,
-            ]}
-          >
-            <Text style={[styles.noticeText, { color: isDark ? "#FDE68A" : "#78350F" }]}>
-              {sessionHandoffNotice}
-            </Text>
-          </View>
-        ) : (
-          <SaasWidgetComposer
-            value={input}
-            onChange={setInput}
-            onSend={() => sendMessage()}
-            placeholder={config.placeholder || "Message…"}
-            disabled={inputLocked}
+      <View style={{ flex: 1, display: showRecentChats ? "none" : "flex" }}>
+        {showHeader ? (
+          <WidgetHeader
             config={config}
             colorScheme={colorScheme}
+            onClose={handleClose}
+            onBack={variant === "fullscreen" ? handleBack : undefined}
+            topInset={variant === "fullscreen" ? topInset : 0}
+            showMenu={canChangeSession}
+            onMenu={() => setShowRecentChats(true)}
+            conversationResolved={conversationResolved}
           />
-        )}
+        ) : null}
+
+        <View style={[styles.threadColumn, { backgroundColor: threadBg }]}>
+          <ScrollView
+            ref={scrollRef}
+            style={styles.thread}
+            contentContainerStyle={styles.threadContent}
+            keyboardShouldPersistTaps="handled"
+            onContentSizeChange={() => scrollToBottom(false)}
+          >
+            <View style={styles.turnList}>
+              {turns.map((turn, index) => {
+                const hasFollowUpUserTurn = turns
+                  .slice(index + 1)
+                  .some((nextTurn) => nextTurn.role === "user");
+                return (
+                  <ChatWidgetTurn
+                    key={turn.id}
+                    turn={turn}
+                    animate={turn.id ? enteringTurnIds.has(turn.id) : false}
+                    showSuggestedReplies={!hasFollowUpUserTurn}
+                  />
+                );
+              })}
+            </View>
+          </ScrollView>
+
+          {showSuggestedPrompts ? (
+            <SuggestedPromptChips
+              prompts={config.suggestedPrompts}
+              onSelect={(prompt) => sendMessage(prompt)}
+              colorScheme={colorScheme}
+              disabled={inputLocked}
+              align="end"
+              layout="stack"
+            />
+          ) : null}
+
+        </View>
+
+        <View style={{ backgroundColor: threadBg }}>
+          {voiceError ? (
+            <Text style={[styles.voiceError, { color: "#EF4444" }]}>{voiceError}</Text>
+          ) : null}
+          {conversationResolved ? (
+            <View
+              style={[
+                styles.noticeBanner,
+                isDark ? styles.resolvedBannerDark : styles.resolvedBannerLight,
+              ]}
+            >
+              <Text style={[styles.noticeText, { color: isDark ? "#6EE7B7" : "#065F46" }]}>
+                ✓ This conversation has been resolved. Start a new chat if you need more help.
+              </Text>
+            </View>
+          ) : sessionHandoffNotice ? (
+            <View
+              style={[
+                styles.noticeBanner,
+                isDark ? styles.handoffBannerDark : styles.handoffBannerLight,
+              ]}
+            >
+              <Text style={[styles.noticeText, { color: isDark ? "#FDE68A" : "#78350F" }]}>
+                {sessionHandoffNotice}
+              </Text>
+            </View>
+          ) : (
+            <WidgetComposer
+              value={input}
+              onChange={setInput}
+              onSend={() => sendMessage()}
+              placeholder={config.placeholder || "Message…"}
+              disabled={inputLocked}
+              config={config}
+              colorScheme={colorScheme}
+            />
+          )}
+        </View>
       </View>
+      {showRecentChats ? <View style={{ flex: 1 }}>
+        <WidgetHeader config={config} colorScheme={colorScheme} title="Recent chats" history
+          onBack={() => setShowRecentChats(false)} onClose={handleClose}
+          topInset={variant === "fullscreen" ? topInset : 0} showMenu={false} />
+        <RecentChats onSelect={() => setShowRecentChats(false)} onStartNew={() => { resetChat(); setShowRecentChats(false); }} />
+      </View> : null}
     </View>
   );
 }

@@ -12,6 +12,7 @@ declare module "react-native" {
   export const BackHandler: any;
   export const Easing: any;
   export const Image: React.ComponentType<any>;
+  export const KeyboardAvoidingView: React.ComponentType<any>;
   export const Linking: any;
   export const Modal: React.ComponentType<any>;
   export const NativeModules: Record<string, any>;

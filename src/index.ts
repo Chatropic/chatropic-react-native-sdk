@@ -98,7 +98,7 @@ export {
   createMemoryKeyValueStorage,
   createResilientKeyValueStorage,
 } from "./storage/create-chat-storage";
-export type { ChatStorage, KeyValueStorage } from "./storage/types";
+export type { CachedChatSession, ChatHistoryScope, ChatStorage, KeyValueStorage } from "./storage/types";
 
 export { parseLinearGradient } from "./theme/parse-gradient";
 export { formatRelativeTime } from "./utils/format-time";
@@ -109,3 +109,6 @@ export {
   PLATFORM_AGENT_DISPLAY_NAME,
 } from "./utils/defaults";
 export { resolveWidgetBranding } from "./utils/branding";
+
+export { expoImagePicker, configureImageGrantStorage, uploadImage, imagePreview, attachmentRefs } from "./client/image-attachments";
+export type { ChatAttachment, AttachmentRef, PickedImage, ImagePicker } from "./client/image-attachments";
