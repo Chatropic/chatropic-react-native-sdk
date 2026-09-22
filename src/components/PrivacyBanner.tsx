@@ -49,12 +49,12 @@ const styles = StyleSheet.create({
   },
   text: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 16,
     lineHeight: 19,
     fontWeight: "500",
   },
   dismiss: {
-    fontSize: 14,
+    fontSize: 16,
     padding: 4,
   },
 });

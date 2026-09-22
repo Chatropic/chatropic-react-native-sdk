@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   text: {
-    fontSize: 13,
+    fontSize: 16,
   },
   card: {
     marginTop: 8,
@@ -241,15 +241,15 @@ const styles = StyleSheet.create({
     maxWidth: "95%",
   },
   title: {
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: "600",
   },
   hint: {
-    fontSize: 11,
+    fontSize: 16,
     marginTop: 4,
   },
   json: {
-    fontSize: 10,
+    fontSize: 16,
     fontFamily: "Menlo",
     marginTop: 8,
   },
@@ -272,16 +272,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#E5E7EB",
   },
   productName: {
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: "600",
     minHeight: 34,
   },
   productCategory: {
-    fontSize: 11,
+    fontSize: 16,
     marginTop: 3,
   },
   productPrice: {
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: "700",
     marginTop: 6,
   },
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   addButtonText: {
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: "700",
   },
 });

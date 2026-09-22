@@ -58,7 +58,7 @@ export function RecentChats({ onSelect, onStartNew }: { onSelect: () => void; on
     {opening && <ActivityIndicator color={colors.muted} />}
     <View style={[styles.footer, { paddingBottom: 28 + inset }]}>
       <Pressable disabled={opening || inputLocked || loading} onPress={onStartNew} style={[styles.newChat, { backgroundColor: colors.foreground, opacity: opening || inputLocked || loading ? 0.5 : 1 }]}>
-        <Text style={{ color: colors.background, fontSize: 14, fontWeight: "500" }}>Start a new chat</Text>
+        <Text style={{ color: colors.background, fontSize: 16, fontWeight: "500" }}>Start a new chat</Text>
       </Pressable>
     </View>
   </View>;
@@ -67,8 +67,8 @@ const styles = StyleSheet.create({
   root: { flex: 1 }, list: { padding: 12, gap: 6 },
   row: { flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 16 },
   icon: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  label: { flex: 1, minWidth: 0 }, title: { fontSize: 14, fontWeight: "500" }, time: { marginTop: 2, fontSize: 11 },
+  label: { flex: 1, minWidth: 0 }, title: { fontSize: 16, fontWeight: "500" }, time: { marginTop: 2, fontSize: 16 },
   empty: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 10 },
-  emptyTitle: { fontSize: 22, fontWeight: "600" }, description: { fontSize: 14, textAlign: "center", paddingHorizontal: 24 },
+  emptyTitle: { fontSize: 16, fontWeight: "600" }, description: { fontSize: 16, textAlign: "center", paddingHorizontal: 24 },
   footer: { alignItems: "center", paddingTop: 12 }, newChat: { borderRadius: 24, paddingHorizontal: 20, paddingVertical: 12 },
 });

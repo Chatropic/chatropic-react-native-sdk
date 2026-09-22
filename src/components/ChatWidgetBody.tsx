@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   errorText: {
-    fontSize: 14,
+    fontSize: 16,
     textAlign: "center",
   },
   threadColumn: {
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   voiceError: {
-    fontSize: 11,
+    fontSize: 16,
     textAlign: "center",
     paddingHorizontal: 16,
     paddingBottom: 4,
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(120,53,15,0.40)",
   },
   noticeText: {
-    fontSize: 13,
+    fontSize: 16,
     lineHeight: 19,
   },
 });

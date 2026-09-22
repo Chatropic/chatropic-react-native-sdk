@@ -156,8 +156,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   inline: {
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 24,
   },
   bold: {
     fontWeight: "700",
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
   },
   code: {
     fontFamily: "Menlo",
-    fontSize: 13,
+    fontSize: 16,
   },
   link: {
     textDecorationLine: "underline",
@@ -180,8 +180,8 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   bullet: {
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 24,
     width: 20,
     fontWeight: "500",
   },

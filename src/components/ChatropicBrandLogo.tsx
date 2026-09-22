@@ -1,5 +1,6 @@
 import React from "react";
-import { StyleSheet, Text, View, type ViewStyle } from "react-native";
+import { View, type ViewStyle } from "react-native";
+import Svg, { Circle, G, Rect } from "react-native-svg";
 import type { ColorScheme } from "../types";
 
 /** Matches playground `chatropicLogoSrc(isDarkSurface)`. */
@@ -13,108 +14,35 @@ interface ChatropicBrandLogoProps {
   colorScheme?: ColorScheme;
   size?: number;
   style?: ViewStyle;
+  /** Override the ink when the mark sits on a launcher surface. */
+  color?: string;
 }
 
-function ChatropicLogoFallback({ size }: { size: number }) {
-  return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size * 0.25,
-        backgroundColor: "#18181B",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <Text
-        style={{
-          color: "#FFFFFF",
-          fontSize: size * 0.55,
-          fontWeight: "700",
-        }}
-      >
-        C
-      </Text>
-    </View>
-  );
-}
-
-function ChatropicLogoSvg({
-  variant,
-  size,
-}: {
-  variant: "light" | "dark";
-  size: number;
-}) {
-  const isDark = variant === "dark";
-  const backgroundColor = isDark ? "#FAFAF9" : "#0A0A0A";
-  const foregroundColor = isDark ? "#0A0A0A" : "#FAFAF9";
-
-  return (
-    <View
-      style={[
-        styles.logo,
-        {
-          width: size,
-          height: size,
-          borderRadius: size * 0.25,
-          backgroundColor,
-        },
-      ]}
-    >
-      <View
-        style={[
-          styles.glyphBar,
-          {
-            width: size * 0.44,
-            height: size * 0.48,
-            left: size * 0.28,
-            top: size * 0.26,
-            backgroundColor: foregroundColor,
-          },
-        ]}
-      />
-      <View
-        style={[
-          styles.glyphCutout,
-          {
-            width: size * 0.28,
-            height: size * 0.2,
-            right: size * 0.16,
-            top: size * 0.4,
-            backgroundColor,
-          },
-        ]}
-      />
-    </View>
-  );
-}
-
+/** Shared vector from the web widget's chatropic-mark light/dark assets. */
 export function ChatropicBrandLogo({
   colorScheme = "light",
   size = 16,
   style,
+  color,
 }: ChatropicBrandLogoProps) {
-  const variant = chatropicLogoVariant(colorScheme);
+  const ink = color ?? (chatropicLogoVariant(colorScheme) === "dark" ? "#F2F1EB" : "#171410");
 
   return (
     <View style={style}>
-      <ChatropicLogoSvg variant={variant} size={size} />
+      <Svg width={size} height={size} viewBox="0 0 100 100" accessible={false}>
+        <G fill={ink} transform="translate(2.2 -2.2)">
+          <Rect x={10} y={51.2} width={66} height={11.6} />
+          <Rect x={10} y={51.2} width={66} height={11.6} transform="rotate(90 43 57)" />
+          <Rect x={10} y={51.2} width={66} height={11.6} transform="rotate(45 43 57)" />
+          <Rect x={10} y={51.2} width={66} height={11.6} transform="rotate(135 43 57)" />
+          <Circle cx={78} cy={22} r={7.6} />
+        </G>
+      </Svg>
     </View>
   );
 }
 
-export { ChatropicLogoFallback };
-
-const styles = StyleSheet.create({
-  logo: {
-    overflow: "hidden",
-  },
-  glyphBar: {
-    position: "absolute",
-  },
-  glyphCutout: {
-    position: "absolute",
-  },
-});
+/** Retained for compatibility; fallback uses the current mark too. */
+export function ChatropicLogoFallback(props: ChatropicBrandLogoProps) {
+  return <ChatropicBrandLogo {...props} />;
+}

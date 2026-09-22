@@ -199,8 +199,8 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   userText: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 16,
+    lineHeight: 24,
   },
   agentCard: {
     maxWidth: "100%",
@@ -210,8 +210,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   agentText: {
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 24,
     flexShrink: 1,
   },
   agentTextRow: {
@@ -234,8 +234,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   thinkingText: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 16,
+    lineHeight: 24,
   },
   dots: {
     flexDirection: "row",

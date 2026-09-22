@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     maxWidth: "92%",
   },
   chipText: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 16,
+    lineHeight: 24,
   },
 });

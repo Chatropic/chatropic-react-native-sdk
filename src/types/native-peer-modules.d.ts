@@ -17,6 +17,9 @@ declare module "react-native" {
   export const Modal: React.ComponentType<any>;
   export const NativeModules: Record<string, any>;
   export const Platform: any;
+  export const ActionSheetIOS: any;
+  export const Alert: any;
+  export const Keyboard: any;
   export const Pressable: React.ComponentType<any>;
   export class ScrollView extends React.Component<any> {
     scrollToEnd(options?: { animated?: boolean }): void;

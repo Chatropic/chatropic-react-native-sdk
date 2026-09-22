@@ -1,5 +1,5 @@
 import { emptyWidgetConfig } from "../src/utils/defaults";
-import { resolveSaasInputBackground, resolveSaasThreadBackground } from "../src/theme/resolve-colors";
+import { applyThemeToWidgetConfig, resolveSaasInputBackground, resolveSaasThreadBackground } from "../src/theme/resolve-colors";
 
 describe("Chat widget surface parity", () => {
   it("does not carry the default white header into dark mode", () => {
@@ -14,3 +14,10 @@ describe("Chat widget surface parity", () => {
     expect(resolveSaasThreadBackground(config, "dark")).toBe("#334455");
   });
 });
+
+ it.each(["light", "dark"] as const)("uses neutral %s surfaces for legacy branded configs", scheme => {
+   const config = applyThemeToWidgetConfig({ ...emptyWidgetConfig(), headerColor: "#FFFFFF", userBubbleColor: "#0891B2" }, scheme);
+   expect(config.headerColor).toBe(scheme === "dark" ? "#121214" : "#FFFFFF");
+   expect(config.userBubbleColor).toBe(scheme === "dark" ? "#FAFAFA" : "#18181B");
+   expect(config.saasInputBackground).toBe(config.headerColor);
+ });

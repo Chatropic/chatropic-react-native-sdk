@@ -1,8 +1,12 @@
-import React, { useState } from "react";
+import React, { useRef } from "react";
 import { useImageUploads } from "./use-image-uploads";
 import {
+  ActionSheetIOS,
   ActivityIndicator,
+  Alert,
   Image,
+  Keyboard,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -42,7 +46,7 @@ export function WidgetComposer({
 }: WidgetComposerProps) {
   const { toggleVoiceSession, privacyDismissed, dismissPrivacy } = useChatWidget();
   const uploads = useImageUploads();
-  const [sourcesOpen, setSourcesOpen] = useState(false);
+  const sourceMenuOpen = useRef(false);
   const surfaces = themeSurfaceColors(colorScheme);
   const isDark = colorScheme === "dark";
   const canSend = (value.trim().length > 0 || uploads.drafts.length > 0) && uploads.ready && !disabled;
@@ -51,6 +55,39 @@ export function WidgetComposer({
   const bottomInset = useBottomSafeInset();
   const iconColor = isDark ? "#A1A1AA" : "#71717A";
   const inputBackground = resolveSaasInputBackground(config, colorScheme);
+
+  const openAttachmentPicker = () => {
+    if (sourceMenuOpen.current || !uploads.enabled || disabled || uploads.picking || uploads.drafts.length >= 4) return;
+    sourceMenuOpen.current = true;
+    Keyboard.dismiss();
+    const dismiss = () => { sourceMenuOpen.current = false; };
+    const pick = (source: "camera" | "library") => {
+      dismiss();
+      void uploads.pick(source);
+    };
+
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: "Attach image",
+          options: ["Choose photos", "Take photo", "Cancel"],
+          cancelButtonIndex: 2,
+          userInterfaceStyle: colorScheme,
+        },
+        (index: number) => {
+          dismiss();
+          if (index === 0) pick("library");
+          if (index === 1) pick("camera");
+        },
+      );
+    } else {
+      Alert.alert("Attach image", undefined, [
+        { text: "Take photo", onPress: () => pick("camera") },
+        { text: "Cancel", style: "cancel", onPress: dismiss },
+        { text: "Choose photos", onPress: () => pick("library") },
+      ], { cancelable: true, onDismiss: dismiss });
+    }
+  };
 
   return (
     <View style={[styles.shell, { paddingBottom: 4 + bottomInset }]}>
@@ -64,9 +101,6 @@ export function WidgetComposer({
         </View>)}
       </View>
       {!!uploads.error && <Text accessibilityRole="alert" style={{ color: surfaces.foreground }}>{uploads.error}</Text>}
-      {sourcesOpen && <View style={{ flexDirection: "row", gap: 16, padding: 12 }}>
-        {(["library", "camera"] as const).map(source => <Pressable key={source} disabled={disabled || uploads.picking} onPress={() => { setSourcesOpen(false); void uploads.pick(source); }} accessibilityLabel={source === "camera" ? "Take photo" : "Choose photos"}><Text style={{ color: surfaces.foreground }}>{source === "camera" ? "Take photo" : "Choose photos"}</Text></Pressable>)}
-      </View>}
       <PrivacyBanner config={config} colorScheme={colorScheme} dismissed={privacyDismissed} onDismiss={dismissPrivacy} />
       <View
         style={[
@@ -77,7 +111,7 @@ export function WidgetComposer({
           },
         ]}
       >
-        <Pressable accessibilityLabel="Attach file" disabled={!uploads.enabled || disabled || uploads.picking || uploads.drafts.length >= 4} onPress={() => setSourcesOpen(v => !v)} style={styles.iconBtn} hitSlop={6}>
+        <Pressable accessibilityLabel="Attach file" disabled={!uploads.enabled || disabled || uploads.picking || uploads.drafts.length >= 4} onPress={openAttachmentPicker} style={styles.iconBtn} hitSlop={6}>
           <ChatIcon name="attachment" color={iconColor} />
         </Pressable>
         <TextInput
