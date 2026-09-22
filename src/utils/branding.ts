@@ -7,14 +7,12 @@ export interface ResolvedWidgetBranding {
   usePlatformLogo: boolean;
 }
 
-/** Visible agent name + logo for widget headers and bubbles (premium overrides). */
+/** Channel display name and explicitly managed logo for widget headers and bubbles. */
 export function resolveWidgetBranding(
   config: WidgetConfig,
 ): ResolvedWidgetBranding {
-  const displayName =
-    config.displayNameManaged && config.displayName?.trim()
-      ? config.displayName.trim()
-      : PLATFORM_AGENT_DISPLAY_NAME;
+  // Public channel configs may omit the editor-only management flag.
+  const displayName = config.displayName?.trim() || PLATFORM_AGENT_DISPLAY_NAME;
 
   const logoUrl =
     config.logoUrlManaged && config.logoUrl?.trim()

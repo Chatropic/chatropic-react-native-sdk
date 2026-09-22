@@ -88,7 +88,7 @@ export function ChatWidgetLauncher(props: ChatWidgetProps) {
             {open ? (
               <Text style={[styles.closeIcon, { color: launcherStyle.color }]}>✕</Text>
             ) : (
-              <WidgetLauncherIcon colorScheme={colorScheme} size={28} />
+              <WidgetLauncherIcon colorScheme={colorScheme} color={launcherStyle.color} size={28} />
             )}
           </Animated.View>
           {!open ? (

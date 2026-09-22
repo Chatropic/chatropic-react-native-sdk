@@ -83,16 +83,6 @@ export function WidgetHeader({
             ) : null}
           </View>
           <View style={styles.actions}>
-            {showMenu && onMenu ? (
-              <Pressable
-                style={styles.iconBtn}
-                accessibilityLabel="More options"
-                onPress={onMenu}
-                hitSlop={8}
-              >
-                <ChatIcon name="more" color={iconColor} />
-              </Pressable>
-            ) : null}
             {onClose ? (
               <Pressable
                 onPress={onClose}
@@ -101,6 +91,16 @@ export function WidgetHeader({
                 hitSlop={8}
               >
                 <ChatIcon name="close" color={iconColor} />
+              </Pressable>
+            ) : null}
+            {showMenu && onMenu ? (
+              <Pressable
+                style={styles.iconBtn}
+                accessibilityLabel="Chat history"
+                onPress={onMenu}
+                hitSlop={8}
+              >
+                <ChatIcon name="history" color={iconColor} />
               </Pressable>
             ) : null}
           </View>
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     height: 24,
   },
   title: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "600",
     flex: 1,
   },
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(16,185,129,0.30)",
   },
   resolvedText: {
-    fontSize: 11,
+    fontSize: 16,
     fontWeight: "500",
     color: "#34D399",
   },

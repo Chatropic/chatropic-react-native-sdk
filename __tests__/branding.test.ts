@@ -2,15 +2,29 @@ import { resolveWidgetBranding } from "../src/utils/branding";
 import { emptyWidgetConfig, PLATFORM_AGENT_DISPLAY_NAME } from "../src/utils/defaults";
 
 describe("resolveWidgetBranding", () => {
-  it("uses Chatropic defaults when branding is not managed", () => {
+  it("uses the channel name even when the management flag is absent", () => {
     const branding = resolveWidgetBranding({
       ...emptyWidgetConfig(),
       displayName: "Pricepally",
       logoUrl: "https://example.com/logo.png",
     });
 
-    expect(branding.displayName).toBe(PLATFORM_AGENT_DISPLAY_NAME);
+    expect(branding.displayName).toBe("Pricepally");
     expect(branding.usePlatformLogo).toBe(true);
+  });
+
+  it("uses the configured name when the management flag is false", () => {
+    expect(resolveWidgetBranding({
+      ...emptyWidgetConfig(),
+      displayName: "  Support assistant  ",
+      displayNameManaged: false,
+    }).displayName).toBe("Support assistant");
+  });
+
+  it.each(["", "   "])("falls back to Chatropic for an empty name (%j)", displayName => {
+    expect(resolveWidgetBranding({
+      ...emptyWidgetConfig(), displayName,
+    }).displayName).toBe(PLATFORM_AGENT_DISPLAY_NAME);
   });
 
   it("allows premium custom branding when managed", () => {

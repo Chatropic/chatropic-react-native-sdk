@@ -47,14 +47,8 @@ export function applyThemeToWidgetConfig(
   config: WidgetConfig,
   scheme: ColorScheme,
 ): WidgetConfig {
-  const light = {
-    ...defaultLightSurfaceColors(config.userBubbleColor, config.headerColor),
-    ...config.lightColors,
-  };
-  const dark = {
-    ...defaultDarkSurfaceColors(config.userBubbleColor, config.headerColor),
-    ...config.darkColors,
-  };
+  const light = defaultLightSurfaceColors();
+  const dark = defaultDarkSurfaceColors("#FAFAFA");
   const surfaces = scheme === "dark" ? dark : light;
 
   const themed: WidgetConfig = {

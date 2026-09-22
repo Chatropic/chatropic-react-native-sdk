@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   time: {
-    fontSize: 11,
+    fontSize: 16,
   },
   actions: {
     marginLeft: "auto",
