@@ -210,6 +210,9 @@ export function streamChat(
       user_id: tenantId ?? "",
       end_user_id: options?.endUserId ?? "",
       message,
+      attachments: options?.attachments ?? [],
+      history_attachments: options?.historyAttachments ?? [],
+      client_message_id: options?.clientMessageId ?? "",
       product_id: options?.productId ?? "customer_support",
       history: options?.history ?? [],
     };

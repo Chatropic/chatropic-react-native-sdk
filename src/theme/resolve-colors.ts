@@ -131,7 +131,8 @@ export function resolveSaasThreadBackground(
 ): string {
   const fallback = scheme === "dark" ? DEFAULT_DARK_THREAD : DEFAULT_LIGHT_THREAD;
   const raw =
-    config.saasThreadBackground?.trim() || config.headerColor?.trim();
+    config.saasThreadBackground?.trim() ||
+    (config.headerColor?.trim().toUpperCase() === DEFAULT_LIGHT_THREAD ? "" : config.headerColor?.trim());
   if (!raw) return fallback;
   return normalizeHexColor(raw, fallback);
 }
@@ -142,7 +143,8 @@ export function resolveSaasInputBackground(
 ): string {
   const fallback = scheme === "dark" ? DEFAULT_DARK_THREAD : DEFAULT_LIGHT_THREAD;
   const raw =
-    config.saasInputBackground?.trim() || config.headerColor?.trim();
+    config.saasInputBackground?.trim() ||
+    (config.headerColor?.trim().toUpperCase() === DEFAULT_LIGHT_THREAD ? "" : config.headerColor?.trim());
   if (!raw) return fallback;
   return normalizeHexColor(raw, fallback);
 }

@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
+import { useImageUploads } from "./use-image-uploads";
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -10,13 +12,13 @@ import {
 import type { ColorScheme, WidgetConfig } from "../types";
 import {
   resolveSaasInputBackground,
-  sendButtonActiveStyle,
   themeSurfaceColors,
 } from "../theme/resolve-colors";
-import { glassSurfaces } from "../theme/widget-glass";
 import { useBottomSafeInset } from "../utils/safe-area";
 import { useChatWidget } from "../provider/ChatWidgetProvider";
 import { PoweredByChatropic } from "./PoweredByChatropic";
+import { PrivacyBanner } from "./PrivacyBanner";
+import { ChatIcon } from "./ChatIcon";
 import { VoiceWaveformIcon } from "./VoiceWaveformIcon";
 
 interface WidgetComposerProps {
@@ -29,30 +31,6 @@ interface WidgetComposerProps {
   colorScheme: ColorScheme;
 }
 
-function ComposerIcon({
-  label,
-  color,
-  children,
-}: {
-  label: string;
-  color: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Pressable
-      disabled
-      style={styles.iconBtn}
-      accessibilityLabel={label}
-    >
-      {typeof children === "string" ? (
-        <Text style={[styles.gifLabel, { color }]}>{children}</Text>
-      ) : (
-        children
-      )}
-    </Pressable>
-  );
-}
-
 export function WidgetComposer({
   value,
   onChange,
@@ -62,51 +40,62 @@ export function WidgetComposer({
   config,
   colorScheme,
 }: WidgetComposerProps) {
-  const { toggleVoiceSession } = useChatWidget();
+  const { toggleVoiceSession, privacyDismissed, dismissPrivacy } = useChatWidget();
+  const uploads = useImageUploads();
+  const [sourcesOpen, setSourcesOpen] = useState(false);
   const surfaces = themeSurfaceColors(colorScheme);
   const isDark = colorScheme === "dark";
-  const glass = glassSurfaces(colorScheme);
-  const canSend = value.trim().length > 0 && !disabled;
-  const sendStyle = sendButtonActiveStyle(config, colorScheme);
+  const canSend = (value.trim().length > 0 || uploads.drafts.length > 0) && uploads.ready && !disabled;
+  const ink = isDark ? "#FAFAFA" : "#0A0A0A";
+  const sendStyle = { backgroundColor: ink, color: isDark ? "#121214" : "#FFFFFF" };
   const bottomInset = useBottomSafeInset();
-  const iconColor = glass.composerIcon;
+  const iconColor = isDark ? "#A1A1AA" : "#71717A";
   const inputBackground = resolveSaasInputBackground(config, colorScheme);
 
   return (
     <View style={[styles.shell, { paddingBottom: 4 + bottomInset }]}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 16 }}>
+        {uploads.drafts.map(d => <View key={d.key} style={{ width: 88, padding: 4 }}>
+          <Image source={{ uri: d.file.uri }} style={{ width: 80, height: 64, borderRadius: 10 }} accessibilityLabel={d.file.name} />
+          <Text numberOfLines={1} style={{ color: surfaces.foreground, fontSize: 11 }}>{d.file.name}</Text>
+          <Text accessibilityLiveRegion="polite" style={{ color: surfaces.foreground, fontSize: 11 }}>{d.error || (d.image ? "Ready" : `Uploading ${d.progress}%`)}</Text>
+          {!!d.error && <Pressable disabled={disabled} accessibilityLabel={`Retry ${d.file.name}`} onPress={() => void uploads.retry(d)}><Text style={{ color: surfaces.foreground }}>Retry</Text></Pressable>}
+          <Pressable disabled={disabled} accessibilityLabel={`Remove ${d.file.name}`} onPress={() => uploads.remove(d)}><Text style={{ color: surfaces.foreground }}>Remove</Text></Pressable>
+        </View>)}
+      </View>
+      {!!uploads.error && <Text accessibilityRole="alert" style={{ color: surfaces.foreground }}>{uploads.error}</Text>}
+      {sourcesOpen && <View style={{ flexDirection: "row", gap: 16, padding: 12 }}>
+        {(["library", "camera"] as const).map(source => <Pressable key={source} disabled={disabled || uploads.picking} onPress={() => { setSourcesOpen(false); void uploads.pick(source); }} accessibilityLabel={source === "camera" ? "Take photo" : "Choose photos"}><Text style={{ color: surfaces.foreground }}>{source === "camera" ? "Take photo" : "Choose photos"}</Text></Pressable>)}
+      </View>}
+      <PrivacyBanner config={config} colorScheme={colorScheme} dismissed={privacyDismissed} onDismiss={dismissPrivacy} />
       <View
         style={[
           styles.card,
           {
-            borderColor: glass.inputBorder,
+            borderColor: ink,
             backgroundColor: inputBackground,
           },
         ]}
       >
+        <Pressable accessibilityLabel="Attach file" disabled={!uploads.enabled || disabled || uploads.picking || uploads.drafts.length >= 4} onPress={() => setSourcesOpen(v => !v)} style={styles.iconBtn} hitSlop={6}>
+          <ChatIcon name="attachment" color={iconColor} />
+        </Pressable>
         <TextInput
-          style={[styles.input, { color: surfaces.foreground }]}
+          style={[styles.input, { color: ink }]}
           value={value}
           onChangeText={onChange}
           placeholder={placeholder || "Message…"}
-          placeholderTextColor={isDark ? glass.textMuted : "#A1A1AA"}
+          placeholderTextColor="#A1A1AA"
+          accessibilityLabel="Message the agent"
           multiline
           editable={!disabled}
         />
-
-        <View style={styles.actionRow}>
-          <View style={styles.iconRow}>
-            <ComposerIcon label="Attach file" color={iconColor}>
-              <Text style={[styles.iconGlyph, { color: iconColor }]}>📎</Text>
-            </ComposerIcon>
-            <ComposerIcon label="Add emoji" color={iconColor}>
-              <Text style={[styles.iconGlyph, { color: iconColor }]}>☺</Text>
-            </ComposerIcon>
-            <ComposerIcon label="Add GIF" color={iconColor}>
-              GIF
-            </ComposerIcon>
-          </View>
-
-          {config.showVoice && !canSend ? (
+        <View style={styles.actions}>
+          {config.showVoice && !canSend && !uploads.drafts.length ? (
+            <>
+            <Pressable accessibilityLabel="Use microphone" onPress={toggleVoiceSession} disabled={disabled} style={styles.iconBtn} hitSlop={6}>
+              <ChatIcon name="microphone" color={iconColor} />
+            </Pressable>
             <Pressable
               onPress={toggleVoiceSession}
               disabled={disabled}
@@ -120,16 +109,16 @@ export function WidgetComposer({
             >
               <VoiceWaveformIcon active={false} color={sendStyle.color} />
             </Pressable>
+            </>
           ) : (
             <Pressable
-              onPress={canSend ? onSend : undefined}
+              onPress={canSend ? () => uploads.drafts.length ? uploads.send(value) : onSend() : undefined}
               disabled={!canSend || disabled}
               style={[
                 styles.sendBtn,
                 {
-                  backgroundColor: canSend
-                    ? sendStyle.backgroundColor
-                    : glass.sendSurface,
+                  backgroundColor: sendStyle.backgroundColor,
+                  opacity: canSend ? 1 : 0.5,
                 },
               ]}
               accessibilityLabel="Send message"
@@ -137,16 +126,7 @@ export function WidgetComposer({
               {disabled ? (
                 <ActivityIndicator size="small" color={surfaces.muted} />
               ) : (
-                <Text
-                  style={[
-                    styles.sendArrow,
-                    {
-                      color: canSend ? sendStyle.color : glass.sendIcon,
-                    },
-                  ]}
-                >
-                  ↑
-                </Text>
+                <ChatIcon name="send" color={sendStyle.color} />
               )}
             </Pressable>
           )}
@@ -166,61 +146,41 @@ export const SaasWidgetComposer = WidgetComposer;
 
 const styles = StyleSheet.create({
   shell: {
-    paddingHorizontal: 16,
     paddingTop: 4,
   },
   poweredBy: {
     paddingHorizontal: 0,
-    paddingTop: 8,
-    paddingBottom: 0,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
   card: {
-    borderWidth: 1,
-    borderRadius: 24,
-    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderWidth: 1.5,
+    borderRadius: 28,
+    minHeight: 52,
+    paddingLeft: 10,
+    paddingRight: 8,
+    paddingVertical: 7,
+    shadowColor: "#000000",
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
   },
   input: {
-    fontSize: 14,
-    lineHeight: 22,
+    flex: 1,
+    minWidth: 0,
+    fontSize: 16,
+    fontWeight: "500",
+    lineHeight: 20,
     minHeight: 28,
     maxHeight: 120,
-    paddingVertical: 0,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
-  actionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 12,
-  },
-  iconRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-  },
-  iconBtn: {
-    width: 32,
-    height: 32,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 8,
-  },
-  iconGlyph: {
-    fontSize: 16,
-  },
-  gifLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.4,
-  },
-  sendBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sendArrow: {
-    fontSize: 16,
-    fontWeight: "700",
-  },
+  actions: { flexDirection: "row", alignItems: "center", gap: 4 },
+  iconBtn: { width: 28, height: 32, alignItems: "center", justifyContent: "center" },
+  sendBtn: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
 });

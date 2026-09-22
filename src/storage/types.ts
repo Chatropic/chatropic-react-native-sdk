@@ -22,7 +22,11 @@ export interface KeyValueStorage {
 }
 
 export interface ChatStorage {
+  /** Optional for backwards compatibility with custom storage adapters. */
+  list?(scope: ChatHistoryScope): Promise<CachedChatSession[]>;
   load(scope: ChatHistoryScope): Promise<CachedChatSession | null>;
   save(scope: ChatHistoryScope, session: CachedChatSession): Promise<void>;
+  /** Clear only the active session, retaining recent conversations. */
+  clearCurrent?(scope: ChatHistoryScope): Promise<void>;
   clear(scope: ChatHistoryScope): Promise<void>;
 }

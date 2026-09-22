@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   inline: {
-    fontSize: 14,
+    fontSize: 13,
     lineHeight: 20,
   },
   bold: {
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   bullet: {
-    fontSize: 14,
+    fontSize: 13,
     lineHeight: 20,
     width: 20,
     fontWeight: "500",

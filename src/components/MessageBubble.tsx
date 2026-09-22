@@ -3,6 +3,7 @@ import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 import type { ColorScheme, WidgetConfig } from "../types";
 import { themeSurfaceColors, userBubbleStyle } from "../theme/resolve-colors";
 import { glassSurfaces } from "../theme/widget-glass";
+import { ChatMarkdown } from "./ChatMarkdown";
 import { useThinkingDotAnimation } from "../utils/widget-animations";
 
 function StreamingCursor({ color }: { color: string }) {
@@ -119,7 +120,7 @@ export function MessageBubble({
         ]}
       >
         <View style={styles.agentTextRow}>
-          <Text style={[styles.agentText, { color: agentStyle.color }]}>{text}</Text>
+          <View style={{ flexShrink: 1 }}><ChatMarkdown content={text} color={agentStyle.color} /></View>
           {running && <StreamingCursor color={agentStyle.color} />}
         </View>
       </View>
@@ -190,7 +191,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   bubble: {
-    maxWidth: "92%",
+    maxWidth: "88%",
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
@@ -202,14 +203,14 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   agentCard: {
-    maxWidth: "92%",
+    maxWidth: "100%",
     alignSelf: "flex-start",
     borderWidth: 0,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   agentText: {
-    fontSize: 14,
+    fontSize: 13,
     lineHeight: 20,
     flexShrink: 1,
   },

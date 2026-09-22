@@ -9,6 +9,7 @@ import {
 import type { ColorScheme, WidgetConfig } from "../types";
 import { textColorForBubble } from "../theme/colors";
 import { resolveWidgetBranding } from "../utils/branding";
+import { ChatIcon } from "./ChatIcon";
 import { ChatropicBrandLogo } from "./ChatropicBrandLogo";
 
 interface WidgetHeaderProps {
@@ -17,6 +18,9 @@ interface WidgetHeaderProps {
   onClose?: () => void;
   onBack?: () => void;
   showMenu?: boolean;
+  onMenu?: () => void;
+  title?: string;
+  history?: boolean;
   topInset?: number;
   conversationResolved?: boolean;
 }
@@ -27,6 +31,9 @@ export function WidgetHeader({
   onClose,
   onBack,
   showMenu = true,
+  onMenu,
+  title,
+  history = false,
   topInset = 0,
   conversationResolved = false,
 }: WidgetHeaderProps) {
@@ -58,16 +65,16 @@ export function WidgetHeader({
                 accessibilityLabel="Back"
                 hitSlop={8}
               >
-                <Text style={[styles.backIcon, { color: headerTextColor }]}>‹</Text>
+                <ChatIcon name="back" color={headerTextColor} />
               </Pressable>
             ) : null}
-            {branding.usePlatformLogo ? (
+            {history ? <ChatIcon name="history" color={headerTextColor} size={24} /> : branding.usePlatformLogo ? (
               <ChatropicBrandLogo colorScheme={colorScheme} size={24} />
             ) : (
               <Image source={{ uri: branding.logoUrl }} style={styles.logo} />
             )}
             <Text style={[styles.title, { color: headerTextColor }]} numberOfLines={1}>
-              {branding.displayName}
+              {title ?? branding.displayName}
             </Text>
             {conversationResolved ? (
               <View style={styles.resolvedBadge}>
@@ -76,12 +83,14 @@ export function WidgetHeader({
             ) : null}
           </View>
           <View style={styles.actions}>
-            {showMenu && !onClose && !onBack ? (
+            {showMenu && onMenu ? (
               <Pressable
                 style={styles.iconBtn}
                 accessibilityLabel="More options"
+                onPress={onMenu}
+                hitSlop={8}
               >
-                <Text style={[styles.menuIcon, { color: iconColor }]}>···</Text>
+                <ChatIcon name="more" color={iconColor} />
               </Pressable>
             ) : null}
             {onClose ? (
@@ -91,7 +100,7 @@ export function WidgetHeader({
                 accessibilityLabel="Close chat"
                 hitSlop={8}
               >
-                <Text style={[styles.menuIcon, { color: iconColor }]}>✕</Text>
+                <ChatIcon name="close" color={iconColor} />
               </Pressable>
             ) : null}
           </View>

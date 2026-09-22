@@ -66,6 +66,7 @@ export interface TurnUI {
 }
 
 export interface Turn {
+  attachments?: import("./client/image-attachments").ChatAttachment[];
   id: string;
   role: "user" | "agent";
   author?: "human_agent";
@@ -103,6 +104,9 @@ export type AgentHistoryMessage = {
 };
 
 export interface AgentStreamOptions {
+  attachments?: import("./client/image-attachments").AttachmentRef[];
+  historyAttachments?: import("./client/image-attachments").AttachmentRef[];
+  clientMessageId?: string;
   publishableKey?: string;
   productId?: ProductId;
   endUserId?: string;
@@ -115,6 +119,7 @@ export interface AgentStreamOptions {
 }
 
 export interface ChatWidgetProps {
+  imagePicker?: import("./client/image-attachments").ImagePicker;
   /** Publishable mobile/widget API key. Preferred for new mobile integrations. */
   publishableKey?: string;
   /** Deprecated for mobile runtime auth. Use publishableKey instead. */
